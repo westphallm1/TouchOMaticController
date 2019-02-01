@@ -9,7 +9,7 @@ class Serial():
 
     def readline(self):
         # Simulate waiting for a response
-        time.sleep(10)
+        time.sleep(5)
         return "ok\n"
 
 
