@@ -6,6 +6,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 import dummySerial as serial
 import touch_o_matic
+import clickanddraw
 
 
 class SerialTeeThread(QtCore.QThread):
@@ -63,6 +64,15 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 self.setHome, self.yPlus, self.yMinus, self.xPlus, 
                 self.xMinus, self.emergencyStop]
 
+        # Widgets for free draw
+        self._setupGraphics()
+
+
+    def _setupGraphics(self):
+        # Todo: Better names
+        self.freeDrawView = clickanddraw.QClickAndDraw(self.tab_2)
+        self.freeDrawView.setObjectName("freeDrawView")
+        self.horizontalLayout_10.addWidget(self.freeDrawView)
 
     def connect(self):
         self.ser = serial.Serial(self.serialPort.currentText(),
