@@ -72,7 +72,11 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         # Todo: Better names
         self.freeDrawView = clickanddraw.QClickAndDraw(self.tab_2)
         self.freeDrawView.setObjectName("freeDrawView")
-        self.horizontalLayout_10.addWidget(self.freeDrawView)
+        self.horizontalLayout_11.addWidget(self.freeDrawView)
+        self.zoomInButton.clicked.connect(self.freeDrawView.zoomIn)
+        self.zoomOutButton.clicked.connect(self.freeDrawView.zoomOut)
+        self.panButton.clicked.connect(self.freeDrawView.pan)
+        self.drawButton.clicked.connect(self.freeDrawView.draw)
 
     def connect(self):
         self.ser = serial.Serial(self.serialPort.currentText(),
