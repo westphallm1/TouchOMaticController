@@ -1,0 +1,23 @@
+name: HyperScanner
+units: mm
+dimensions:
+  - x-axis: 1800
+  - y-axis: 1800
+  - z-axis: 1800
+  - show-grid: 50
+
+instructions:
+  # connect to the machine
+  - connect: \r\n\r\n
+  # move to an absolute x,y, z position
+  - absolute:
+    - all: This is not implemented!
+  # move relative to current position
+  - relative:
+    - all: G90 GO  X{X} Y{Y} Z{Z}
+    - x: G90 GO X{X}
+    - y: G90 GO Y{Y}
+    - z: G90 GO Z{Z}
+  # stop in the middle of movement
+  - stop: "!"
+

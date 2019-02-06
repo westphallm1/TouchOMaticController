@@ -1,0 +1,26 @@
+name: ABCD
+units: mm
+default: true
+dimensions:
+  x-axis: 200
+  y-axis: 800 
+  z-axis: None
+  grid-size: 50
+
+instructions:
+  # connect to the machine
+  connect: \r\n\r\n
+  # move to an absolute position
+  absolute:
+    all: G90 GO  X{X} Y{Y} Z{Z}
+    x: G90 GO X{X}
+    y: G90 GO Y{Y}
+    z: G90 GO Z{Z}
+  # move relative to current position
+  relative:
+    all: G90 GO  X{X} Y{Y} Z{Z}
+    x: G90 GO X{X}
+    y: G90 GO Y{Y}
+    z: G90 GO Z{Z}
+  # stop in the middle of movement
+  stop: "!"

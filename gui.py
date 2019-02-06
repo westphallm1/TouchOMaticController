@@ -3,6 +3,8 @@ import os
 import threading
 import time
 from PyQt5 import QtCore, QtGui, QtWidgets
+import yaml
+import logging
 
 import dummySerial as serial
 import touch_o_matic
@@ -67,6 +69,29 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         # Widgets for free draw
         self._setupGraphics()
 
+        # List of known CNC machines
+        self._readMachineInfo()
+
+    def _readMachineInfo(self):
+        config_dir = os.path.join(os.path.split(__file__)[0],"config")
+        yamls = [y for y in os.listdir(config_dir) if y.endswith('.yaml')]
+        self.machines = {}
+        for yam in yamls:
+            yam = os.path.join(config_dir,yam)
+            with open(yam) as y:
+                try:
+                    data = yaml.safe_load(y)
+                    self.machines[data['name']] = data
+                except:
+                    logging.warning("Failed to parse config file {}".format(yam))
+
+        for i,name in enumerate(sorted(self.machines.keys())):
+            self.cncSelect.addItem(name)
+            if self.machines[name].get('default'):
+                self.cncSelect.setCurrentIndex(i)
+
+        self.freeDrawView.setMachine(self.machines[self.cncSelect.currentText()])
+
 
     def _setupGraphics(self):
         # Todo: Better names
@@ -75,8 +100,10 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.horizontalLayout_11.addWidget(self.freeDrawView)
         self.zoomInButton.clicked.connect(self.freeDrawView.zoomIn)
         self.zoomOutButton.clicked.connect(self.freeDrawView.zoomOut)
-        self.panButton.clicked.connect(self.freeDrawView.pan)
-        self.drawButton.clicked.connect(self.freeDrawView.draw)
+        self.rotateL.clicked.connect(self.freeDrawView.rotateL)
+        self.rotateR.clicked.connect(self.freeDrawView.rotateR)
+        #self.panButton.clicked.connect(self.freeDrawView.pan)
+        #self.drawButton.clicked.connect(self.freeDrawView.draw)
 
     def connect(self):
         self.ser = serial.Serial(self.serialPort.currentText(),

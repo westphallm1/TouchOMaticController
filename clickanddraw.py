@@ -7,7 +7,6 @@ Rect = namedtuple('Rect','x0 y0 xf yf')
 class QDragPoint(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, traceline = None, r = 8):
         super(QtWidgets.QGraphicsEllipseItem,self).__init__(x-r/2, y-r/2, r, r)
-        self.setAcceptDrops(True)
         self._x = x
         self._y = y
         self.x = x
@@ -41,38 +40,42 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         self.setPen(self._normalPen)
 
 
-GRID_STEP = 40
 class QCDScene(QtWidgets.QGraphicsScene):
-    def __init__(self,parent,x0=-800, y0=0, xf= 0, yf = 240):
+    def __init__(self,parent):
         super(QtWidgets.QGraphicsScene,self).__init__(parent)
         self.parent = parent
         self.traceline = None
-        self.head = QDragPoint(-GRID_STEP,0)
-        self.addItem(self.head)
-        self.tail = self.head
         self._moved = False
         self._mover = None 
         self._pen = QtGui.QPen(QtGui.QColor("red"))
         self._pen.setWidth(4)
+        self._pen.setCosmetic(True)
+        self.head = None
+        self.tail = None
+        self.head = QDragPoint(0,0)
+        self.tail = self.head
+        self.addItem(self.head)
 
-        self.rect = Rect(x0, y0, xf, yf)
-        self.setSceneRect(x0-GRID_STEP,y0-GRID_STEP,GRID_STEP+xf-x0,GRID_STEP+yf-y0)
-        self.drawGrid()
+    def setGrid(self, xf, yf,GRID_STEP = 50):
+        self.rect = Rect(0, 0, xf, yf)
+        self._drawGrid(GRID_STEP)
+        # self.setSceneRect(None)
 
 
-    def drawGrid(self):
+    def _drawGrid(self, GRID_STEP = 50):
         gridpen = QtGui.QPen(QtGui.QColor(0,0,0,100))
+        gridpen.setCosmetic(True)
         gridpen.setDashPattern([4,5])
         gridpen.setWidth(2)
-        for i in range(self.rect.x0, self.rect.xf,GRID_STEP):
+        for i in range(self.rect.x0, self.rect.xf+GRID_STEP,GRID_STEP):
             self.addLine(i,self.rect.y0,i,self.rect.yf,gridpen)
 
         for i in range(self.rect.y0, self.rect.yf+GRID_STEP,GRID_STEP):
-            self.addLine(self.rect.x0,i,self.rect.xf-GRID_STEP,i,gridpen)
+            self.addLine(self.rect.x0,i,self.rect.xf,i,gridpen)
 
 
     def mousePressEvent(self, event):
-        if self._mover:
+        if isinstance(self._mover,QDragPoint):
             self._mover.unhighlight()
         self._mover = None
         self._moving = False
@@ -142,6 +145,8 @@ class QCDScene(QtWidgets.QGraphicsScene):
         self._mover.setScenePos(pos.x(),pos.y())
 
     def mouseMoveEvent(self, event):
+        if event.buttons() == QtCore.Qt.NoButton:
+            return
         if self._mover:
             self._moveexisting(event)
         elif self._moving:
@@ -165,6 +170,7 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
         self.setScene(self.scene)
         #self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.rotation = 0
 
     def pan(self):
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
@@ -177,3 +183,15 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
 
     def zoomOut(self):
         self.scale(.8,.8)
+
+    def rotateL(self):
+        self.rotate(30)
+
+    def rotateR(self):
+        self.rotate(-30)
+
+    def setMachine(self,machine):
+        x_bound = machine['dimensions']['x-axis']
+        y_bound = machine['dimensions']['y-axis']
+        grid_size = machine['dimensions']['grid-size']
+        self.scene.setGrid(x_bound,y_bound,grid_size)
