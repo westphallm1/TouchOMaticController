@@ -11,14 +11,17 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         self._y = y
         self.x = x
         self.y = y
+        self.r = r
         self.traceline = traceline
         self.next = None 
         self.prev = None
         self.setZValue(9999)
         self.setBrush(QtGui.QBrush(QtGui.QColor("white")))
         self._normalPen = QtGui.QPen(QtGui.QColor("black"))
+        self._normalPen.setWidth(self.r/8)
+        self.setPen(self._normalPen)
         self._highlightPen = QtGui.QPen(QtGui.QColor("black"))
-        self._highlightPen.setWidth(2)
+        self._highlightPen.setWidth(self.r/4)
 
     def setScenePos(self,x,y):
         self.setPos(x-self._x,y-self._y)
@@ -32,6 +35,15 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
             self.next.traceline.setLine(x,y,x2,y2)
         self.x = x
         self.y = y
+
+    def scaleSize(self,factor):
+        self.r *= factor
+        self.setRect(self._x-self.r/2,self._y-self.r/2,self.r,self.r)
+        self._normalPen = QtGui.QPen(QtGui.QColor("black"))
+        self._normalPen.setWidth(self.r/8)
+        self.setPen(self._normalPen)
+        self._highlightPen = QtGui.QPen(QtGui.QColor("black"))
+        self._highlightPen.setWidth(self.r/4)
 
     def highlight(self):
         self.setPen(self._highlightPen)
@@ -59,7 +71,6 @@ class QCDScene(QtWidgets.QGraphicsScene):
     def setGrid(self, xf, yf,GRID_STEP = 50):
         self.rect = Rect(0, 0, xf, yf)
         self._drawGrid(GRID_STEP)
-        # self.setSceneRect(None)
 
 
     def _drawGrid(self, GRID_STEP = 50):
@@ -119,7 +130,7 @@ class QCDScene(QtWidgets.QGraphicsScene):
         pos = event.scenePos()
         if self._mover:
             self._mover.unhighlight()
-            new_mover = QDragPoint(pos.x(),pos.y())
+            new_mover = QDragPoint(pos.x(),pos.y(), r = self.head.r)
             new_mover.traceline = self.addLine(self._mover.x,self._mover.y,
                                                pos.x(),pos.y(),self._pen)
             new_mover.next = self._mover.next
@@ -156,7 +167,8 @@ class QCDScene(QtWidgets.QGraphicsScene):
         pos = event.scenePos()
         if self._moved:
             self._moved = False
-            new_tail = QDragPoint(pos.x(),pos.y(),self.traceline)
+            new_tail = QDragPoint(pos.x(),pos.y(),self.traceline,
+                    r = self.head.r)
             self.tail.next = new_tail
             new_tail.prev = self.tail
             self.tail = new_tail
@@ -168,8 +180,6 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
         super(QtWidgets.QGraphicsView,self).__init__(parent)
         self.scene = QCDScene(self)
         self.setScene(self.scene)
-        #self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.rotation = 0
 
     def pan(self):
@@ -180,9 +190,17 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
 
     def zoomIn(self):
         self.scale(1.25,1.25)
+        head = self.scene.head
+        while head:
+            head.scaleSize(0.8)
+            head = head.next
 
     def zoomOut(self):
         self.scale(.8,.8)
+        head = self.scene.head
+        while head:
+            head.scaleSize(1.25)
+            head = head.next
 
     def rotateL(self):
         self.rotate(30)

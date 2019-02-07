@@ -102,7 +102,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -523,28 +523,68 @@
             <item row="0" column="1">
              <widget class="QToolButton" name="zoomInButton">
               <property name="text">
-               <string>+</string>
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>Assets/icons8-plus-math-50.png</normaloff>Assets/icons8-plus-math-50.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
               </property>
              </widget>
             </item>
             <item row="0" column="2">
              <widget class="QToolButton" name="zoomOutButton">
               <property name="text">
-               <string>-</string>
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>Assets/icons8-subtract-50.png</normaloff>Assets/icons8-subtract-50.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
              <widget class="QToolButton" name="rotateL">
               <property name="text">
-               <string>L</string>
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>Assets/icons8-rotate-right-filled.png</normaloff>Assets/icons8-rotate-right-filled.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
               </property>
              </widget>
             </item>
             <item row="1" column="2">
              <widget class="QToolButton" name="rotateR">
               <property name="text">
-               <string>R</string>
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>Assets/icons8-rotate-left-filled.png</normaloff>Assets/icons8-rotate-left-filled.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
               </property>
              </widget>
             </item>
@@ -773,11 +813,41 @@
      <x>0</x>
      <y>0</y>
      <width>794</width>
-     <height>22</height>
+     <height>20</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionLoad_Basic_Scan"/>
+    <addaction name="actionSave_Basic_Scan"/>
+    <addaction name="actionLoad_Custom_Scan"/>
+    <addaction name="actionSave_Custom_Scan"/>
+   </widget>
+   <addaction name="menuFile"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionLoad_Basic_Scan">
+   <property name="text">
+    <string>Load Basic Scan</string>
+   </property>
+  </action>
+  <action name="actionSave_Basic_Scan">
+   <property name="text">
+    <string>Save Basic Scan</string>
+   </property>
+  </action>
+  <action name="actionLoad_Custom_Scan">
+   <property name="text">
+    <string>Load Custom Scan</string>
+   </property>
+  </action>
+  <action name="actionSave_Custom_Scan">
+   <property name="text">
+    <string>Save Custom Scan</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
