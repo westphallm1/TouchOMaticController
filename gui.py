@@ -102,8 +102,6 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.zoomOutButton.clicked.connect(self.freeDrawView.zoomOut)
         self.rotateL.clicked.connect(self.freeDrawView.rotateL)
         self.rotateR.clicked.connect(self.freeDrawView.rotateR)
-        #self.panButton.clicked.connect(self.freeDrawView.pan)
-        #self.drawButton.clicked.connect(self.freeDrawView.draw)
 
     def connect(self):
         self.ser = serial.Serial(self.serialPort.currentText(),
