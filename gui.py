@@ -17,6 +17,7 @@ class SerialTeeThread(QtCore.QThread):
     def __init__(self,parent,ser_dev):
         super(QtCore.QThread,self).__init__(parent)
         self.ser = ser_dev
+        self._stopped = False
 
     def set_serial(self,ser_dev):
         self.ser = ser
@@ -27,10 +28,16 @@ class SerialTeeThread(QtCore.QThread):
 
     def run(self):
         for message in self.messages:
+            if self._stopped:
+                self._stopped = False
+                return
             self.updated.emit('> ' + message)
             self.ser.write(message)
             result = self.ser.readline()
             self.updated.emit(result.strip())
+
+    def stop(self):
+        self._stopped = True
 
 
 
@@ -62,15 +69,27 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.scanTimer.setSingleShot(False)
 
         # Buttons that can only be used while connected
-        self.cmdButtons = [self.startScan, self.stopScan, self.goHome, 
-                self.setHome, self.yPlus, self.yMinus, self.xPlus, 
-                self.xMinus, self.emergencyStop]
+        self.cmdButtons = [self.startScan, self.stopScan, self.emergencyStop,
+                self.goHome, self.setHome, self.yPlus, self.yMinus, self.xPlus, 
+                self.xMinus, self.startCustom, self.stopCustom]
 
         # Widgets for free draw
         self._setupGraphics()
 
         # List of known CNC machines
         self._readMachineInfo()
+
+    @property
+    def machine(self):
+        return self.machines[self.cncSelect.currentText()]
+
+    @property
+    def instructions(self):
+        return self.machine['instructions']
+
+    @property
+    def dimensions(self):
+        return self.machine['dimensions']
 
     def _readMachineInfo(self):
         config_dir = os.path.join(os.path.split(__file__)[0],"config")
@@ -91,17 +110,24 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 self.cncSelect.setCurrentIndex(i)
 
         self.freeDrawView.setMachine(self.machines[self.cncSelect.currentText()])
+        self.setMachine()
 
+    def setMachine(self):
+        self.primary_units.setText(self.machine['units'])
+        self.secondary_units.setText(self.machine['units'])
+        self.manual_units.setText(self.machine['units'])
+        self.yLengthValue.setValue(self.machine['dimensions']['y-axis'])
 
     def _setupGraphics(self):
         # Todo: Better names
-        self.freeDrawView = clickanddraw.QClickAndDraw(self.tab_2)
+        self.freeDrawView = clickanddraw.QClickAndDraw(self.customTab)
         self.freeDrawView.setObjectName("freeDrawView")
         self.horizontalLayout_11.addWidget(self.freeDrawView)
         self.zoomInButton.clicked.connect(self.freeDrawView.zoomIn)
         self.zoomOutButton.clicked.connect(self.freeDrawView.zoomOut)
         self.rotateL.clicked.connect(self.freeDrawView.rotateL)
         self.rotateR.clicked.connect(self.freeDrawView.rotateR)
+        self.startCustom.clicked.connect(self.startScanningCustom)
 
     def connect(self):
         self.ser = serial.Serial(self.serialPort.currentText(),
@@ -120,6 +146,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
 
     def stepxPlus(self):
         self.ser_tee.start(["G90 GO X{}".format(self.manualStepValue.value())])
+
     def stepxMinus(self):
         self.ser_tee.start(["G90 GO X-{}".format(self.manualStepValue.value())])
     def stepyPlus(self):
@@ -127,38 +154,56 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
     def stepyMinus(self):
         self.ser_tee.start(["G90 GO Y-{}".format(self.manualStepValue.value())])
 
-    def startScanning(self):
+
+    def _getTimeInfo(self):
         time_multiplier = {"Seconds":1,"Minutes":60,"Hours":3600}[
                 self.yIntervalUnits.currentText()]
         time_interval = self.yIntervalValue.value() * time_multiplier
+        return {
+            "units":self.yIntervalUnits.currentText(),
+            "interval":self.yIntervalValue.value(),
+            "interval_s":time_interval
+        }
+    def startScanning(self):
+        time_info = self._getTimeInfo()
         self.commandLog.appendPlainText("Starting scan on {} {} interval."
-                .format(self.yIntervalValue.value(),
-                        self.yIntervalUnits.currentText().lower()[:-1]))
+                .format(time_info["interval"],time_info["units"]))
         self.sendScanCommand()
-        for button in self.cmdButtons[2:-1]:
+        for button in self.cmdButtons[3:]:
              button.setEnabled(False)
-        self.scanTimer.start(time_interval*1000)
+        self.scanTimer.start(time_info["interval_s"]*1000)
+
+    def startScanningCustom(self):
+        time_info = self._getTimeInfo()
+        self.commandLog.appendPlainText("Starting custom scan on {} {} interval."
+                .format(time_info["interval"],time_info["units"]))
+        waypoints = self.freeDrawView.dumpWaypointsInfo()
+        commands = [self.instructions['absolute']['xy'].format(**point)
+                for point in waypoints]
+        self.sendScanCommand(commands)
 
     def stopScanning(self):
         self.commandLog.appendPlainText("Stopping scan.")
         self.scanTimer.stop()
+        self.ser_tee.stop()
         self.ser_tee.quit()
         for button in self.cmdButtons[2:-1]:
              button.setEnabled(True)
 
     def emergencyStopScanning(self):
+        self.stopScanning()
         self.ser_tee.terminate()
-        # Hack to increase likelihood that thread can start again
         time.sleep(0.1)
-        self.ser_tee.start(["!"])
-        for button in self.cmdButtons[2:-1]:
-             button.setEnabled(True)
+        self.ser_tee.start([self.instructions['stop']])
 
-
-    def sendScanCommand(self):
-        GO_CMD = "G90 GO Y-{}".format(self.yLengthValue.value())
-        BACK_CMD = "G90 GO Y{}".format(self.yLengthValue.value())
-        self.ser_tee.start([GO_CMD,BACK_CMD])
+    def sendScanCommand(self,commands=None):
+        if not commands:
+            GO_CMD = self.instructions['absolute']['y'].format(
+                    y=self.yLengthValue.value())
+            BACK_CMD = self.instructions['absolute']['y'].format(
+                    y=0)
+            commands = [GO_CMD,BACK_CMD]
+        self.ser_tee.start(commands)
 
 def run():
     app = QtWidgets.QApplication(sys.argv)

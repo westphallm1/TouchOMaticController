@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>794</width>
-    <height>595</height>
+    <width>720</width>
+    <height>603</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -102,9 +102,9 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
-      <widget class="QWidget" name="tab">
+      <widget class="QWidget" name="basicTab">
        <attribute name="title">
         <string>Basic Scan</string>
        </attribute>
@@ -117,7 +117,7 @@
           <item>
            <widget class="QGroupBox" name="groupBox_2">
             <property name="title">
-             <string>Y Axis Configuration</string>
+             <string>Primary Axis Configuration</string>
             </property>
             <layout class="QGridLayout" name="gridLayout_3">
              <item row="0" column="0">
@@ -180,26 +180,22 @@
               <layout class="QHBoxLayout" name="horizontalLayout_4">
                <item>
                 <widget class="QSpinBox" name="yLengthValue">
+                 <property name="minimum">
+                  <number>-1000</number>
+                 </property>
                  <property name="maximum">
-                  <number>500</number>
+                  <number>1000</number>
                  </property>
                  <property name="value">
-                  <number>200</number>
+                  <number>0</number>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QComboBox" name="yLengthUnits">
-                 <item>
-                  <property name="text">
-                   <string>mm</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>inches</string>
-                  </property>
-                 </item>
+                <widget class="QLabel" name="primary_units">
+                 <property name="text">
+                  <string/>
+                 </property>
                 </widget>
                </item>
               </layout>
@@ -216,15 +212,52 @@
              </font>
             </property>
             <property name="title">
-             <string>X Axis Configuration</string>
+             <string>Secondary Axis Configuration</string>
             </property>
             <layout class="QGridLayout" name="gridLayout_4">
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_3">
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_16">
                <property name="text">
-                <string>//TODO</string>
+                <string>Position:</string>
                </property>
               </widget>
+             </item>
+             <item row="2" column="0">
+              <spacer name="verticalSpacer_5">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="1" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_12">
+               <item>
+                <widget class="QSpinBox" name="xLengthValue">
+                 <property name="minimum">
+                  <number>-1000</number>
+                 </property>
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="secondary_units">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
             </layout>
            </widget>
@@ -399,17 +432,10 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QComboBox" name="manualStepUnits">
-                   <item>
-                    <property name="text">
-                     <string>mm</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>inches</string>
-                    </property>
-                   </item>
+                  <widget class="QLabel" name="manual_units">
+                   <property name="text">
+                    <string/>
+                   </property>
                   </widget>
                  </item>
                 </layout>
@@ -505,7 +531,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_2">
+      <widget class="QWidget" name="customTab">
        <attribute name="title">
         <string>Custom Scan</string>
        </attribute>
@@ -719,6 +745,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="startCustom">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="text">
              <string>Start Scan</string>
             </property>
@@ -726,6 +755,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="stopCustom">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="text">
              <string>Stop Scan</string>
             </property>
@@ -748,7 +780,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_3">
+      <widget class="QWidget" name="eventTab">
        <attribute name="title">
         <string>Event Log</string>
        </attribute>
@@ -812,8 +844,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>794</width>
-     <height>20</height>
+     <width>720</width>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

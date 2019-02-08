@@ -52,6 +52,10 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         self.setRect(self._x-self.r/2,self._y-self.r/2,self.r,self.r)
         self._updatePens()
 
+    @property
+    def info(self):
+        return {"x":self.x,"y":self.y}
+
 def onlywhendrawing(function):
     """Only call function if object's drawing property is true"""
     def wrapper(self,*args,**kwargs):
@@ -85,10 +89,12 @@ class QCDScene(QtWidgets.QGraphicsScene):
         gridpen.setCosmetic(True)
         gridpen.setDashPattern([4,5])
         gridpen.setWidth(2)
-        for i in range(self.rect.x0, self.rect.xf+GRID_STEP,GRID_STEP):
+        x0, xf = sorted((self.rect.x0, self.rect.xf))
+        y0, yf = sorted((self.rect.y0, self.rect.yf))
+        for i in range(x0, xf+GRID_STEP,GRID_STEP):
             self.addLine(i,self.rect.y0,i,self.rect.yf,gridpen)
 
-        for i in range(self.rect.y0, self.rect.yf+GRID_STEP,GRID_STEP):
+        for i in range(y0, yf+GRID_STEP,GRID_STEP):
             self.addLine(self.rect.x0,i,self.rect.xf,i,gridpen)
     
     @onlywhendrawing
@@ -164,6 +170,11 @@ class QCDScene(QtWidgets.QGraphicsScene):
             if isinstance(mover, QDragPoint):
                 mover.moveScenePos(dx,dy)
 
+
+    def removeMultiple(self):
+        for mover in self.selectedItems():
+            self._removeMover(mover)
+
     @onlywhendrawing
     def mouseMoveEvent(self, event):
         if event.buttons() == QtCore.Qt.NoButton:
@@ -198,6 +209,13 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
         self.setScene(self._scene)
         self.rotation = 0
 
+    @property
+    def waypoints(self):
+        head = self._scene.head
+        while head:
+            yield head
+            head = head.next
+
     def pan(self):
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
@@ -206,17 +224,11 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
 
     def zoomIn(self):
         self.scale(1.25,1.25)
-        head = self._scene.head
-        while head:
-            head.scaleSize(0.8)
-            head = head.next
+        [h.scaleSize(0.8) for h in self.waypoints]
 
     def zoomOut(self):
         self.scale(.8,.8)
-        head = self._scene.head
-        while head:
-            head.scaleSize(1.25)
-            head = head.next
+        [h.scaleSize(1.25) for h in self.waypoints]
 
     def setRBSelect(self):
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
@@ -230,6 +242,8 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
     def keyPressEvent(self,event):
         if event.key() == QtCore.Qt.Key_Shift:
             self.setRBSelect()
+        elif event.key() == QtCore.Qt.Key_Delete:
+            self._scene.removeMultiple()
 
     def keyReleaseEvent(self,event):
         self.unsetRBSelect()
@@ -245,3 +259,6 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
         y_bound = machine['dimensions']['y-axis']
         grid_size = machine['dimensions']['grid-size']
         self._scene.setGrid(x_bound,y_bound,grid_size)
+
+    def dumpWaypointsInfo(self):
+        return [h.info for h in self.waypoints]
