@@ -2,6 +2,8 @@ name: ABCD
 units: mm
 default: true
 primary-axis: y
+# if the machine isn't callibrated to proper gcode units
+scale-factor: 0.25
 dimensions:
   x-axis: 200
   y-axis: -800 
@@ -10,9 +12,7 @@ dimensions:
 
 instructions:
   # connect to the machine
-  connect: \r\n\r\n
-  # run before every scan
-  prefix: G21
+  connect: \r\n\r\nG21
   # run after every scan
   postfix: null
   # move to an absolute position

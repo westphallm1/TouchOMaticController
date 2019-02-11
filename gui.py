@@ -5,7 +5,7 @@ import time
 from PyQt5 import QtCore, QtGui, QtWidgets
 import yaml
 import logging
-
+import codecs
 import dummySerial as serial
 import touch_o_matic
 import clickanddraw
@@ -40,6 +40,19 @@ class SerialTeeThread(QtCore.QThread):
         self._stopped = True
 
 
+
+def stringdecoder(function):
+    class __stringdecoder():
+        def __init__(self,dic):
+            self._dict = dic
+        def __getitem__(self,item):
+            if isinstance(self._dict[item],str):
+                return codecs.decode(self._dict[item],'unicode_escape')
+            return self._dict[item]
+    def wrapper(self,*args,**kwargs):
+        return __stringdecoder(function(self,*args,**kwargs))
+
+    return wrapper
 
 class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
     def __init__(self,parent = None):
@@ -80,14 +93,27 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self._readMachineInfo()
 
     @property
+    @stringdecoder
     def machine(self):
         return self.machines[self.cncSelect.currentText()]
 
     @property
+    @stringdecoder
     def instructions(self):
         return self.machine['instructions']
 
     @property
+    @stringdecoder
+    def absolute(self):
+        return self.instructions['absolute']
+
+    @property
+    @stringdecoder
+    def relative(self):
+        return self.instructions['relative']
+
+    @property
+    @stringdecoder
     def dimensions(self):
         return self.machine['dimensions']
 
@@ -140,19 +166,20 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 "Connected to {} at baudrate {}"
                 .format(self.serialPort.currentText(), self.baudRateValue.value()))
 
+        self.ser.write(self.instructions['connect'])
         for button in self.cmdButtons:
              button.setEnabled(True)
 
 
     def stepxPlus(self):
-        self.ser_tee.start(["G90 GO X{}".format(self.manualStepValue.value())])
+        self.ser_tee.start([self.relative['x'].format(x=self.manualStepValue.value())])
 
     def stepxMinus(self):
-        self.ser_tee.start(["G90 GO X-{}".format(self.manualStepValue.value())])
+        self.ser_tee.start([self.relative['x'].format(x=-self.manualStepValue.value())])
     def stepyPlus(self):
-        self.ser_tee.start(["G90 GO Y{}".format(self.manualStepValue.value())])
+        self.ser_tee.start([self.relative['y'].format(y=self.manualStepValue.value())])
     def stepyMinus(self):
-        self.ser_tee.start(["G90 GO Y-{}".format(self.manualStepValue.value())])
+        self.ser_tee.start([self.relative['y'].format(self.manualStepValue.value())])
 
 
     def _getTimeInfo(self):
