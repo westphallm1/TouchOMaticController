@@ -17,16 +17,16 @@ instructions:
   postfix: null
   # move to an absolute position
   absolute:
-    all: G90 GO  X{x} Y{y} Z{z}
-    xy: G90 GO X{x} Y{y}
-    x: G90 GO X{x}
-    y: G90 GO Y{y}
-    z: G90 GO Z{z}
+    all: G90 X{x} Y{y} Z{z}
+    xy: G90 X{x} Y{y}
+    x: G90 X{x}
+    y: G90 Y{y}
+    z: G90 Z{z}
   # move relative to current position
   relative:
-    all: G91 GO  X{x} Y{y} Z{z}
-    x: G91 GO X{x}
-    y: G91 GO Y{y}
-    z: G91 GO Z{x}
+    all: G91 X{x} Y{y} Z{z}
+    x: G91 X{x}
+    y: G91 Y{y}
+    z: G91 Z{x}
   # stop in the middle of movement
   stop: "!"

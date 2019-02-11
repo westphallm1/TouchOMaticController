@@ -6,7 +6,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import yaml
 import logging
 import codecs
-import dummySerial as serial
+import serial
 import touch_o_matic
 import clickanddraw
 
@@ -32,9 +32,9 @@ class SerialTeeThread(QtCore.QThread):
                 self._stopped = False
                 return
             self.updated.emit('> ' + message)
-            self.ser.write(message)
+            self.ser.write(bytes(message+'\r\n','ascii'))
             result = self.ser.readline()
-            self.updated.emit(result.strip())
+            self.updated.emit(result.strip().decode('ascii'))
 
     def stop(self):
         self._stopped = True
@@ -61,7 +61,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         
         # Connection Menu
         self.ser = None
-        self.serialPort.addItems(serial.get_ports())
+        self.serialPort.addItems(['/dev/ttyACM0'])
         self.serialConnect.clicked.connect(self.connect)
 
         # Controls Menu
@@ -93,7 +93,6 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self._readMachineInfo()
 
     @property
-    @stringdecoder
     def machine(self):
         return self.machines[self.cncSelect.currentText()]
 
@@ -105,12 +104,12 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
     @property
     @stringdecoder
     def absolute(self):
-        return self.instructions['absolute']
+        return self.machine['instructions']['absolute']
 
     @property
     @stringdecoder
     def relative(self):
-        return self.instructions['relative']
+        return self.machine['instructions']['relative']
 
     @property
     @stringdecoder
@@ -166,7 +165,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 "Connected to {} at baudrate {}"
                 .format(self.serialPort.currentText(), self.baudRateValue.value()))
 
-        self.ser.write(self.instructions['connect'])
+        self.ser.write(bytes(self.instructions['connect']+'\r\n','ascii'))
         for button in self.cmdButtons:
              button.setEnabled(True)
 
@@ -179,7 +178,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
     def stepyPlus(self):
         self.ser_tee.start([self.relative['y'].format(y=self.manualStepValue.value())])
     def stepyMinus(self):
-        self.ser_tee.start([self.relative['y'].format(self.manualStepValue.value())])
+        self.ser_tee.start([self.relative['y'].format(y=-self.manualStepValue.value())])
 
 
     def _getTimeInfo(self):
