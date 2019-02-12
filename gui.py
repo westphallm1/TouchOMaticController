@@ -42,6 +42,11 @@ class SerialTeeThread(QtCore.QThread):
 
 
 def stringdecoder(function):
+    """Wrapper for functions that return a dictionary. Converts the dictionary
+    returned by the function into a dictionary-like object that has all the
+    unicode escape sequences (eg. '\\n') in its string values converted into the 
+    appropriate ascii bytes, and all its other keys unchanged
+    """
     class __stringdecoder():
         def __init__(self,dic):
             self._dict = dic
