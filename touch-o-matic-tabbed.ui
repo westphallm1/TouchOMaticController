@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>720</width>
-    <height>603</height>
+    <height>573</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -102,7 +102,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="basicTab">
        <attribute name="title">
@@ -542,86 +542,146 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_5">
           <item>
-           <layout class="QGridLayout" name="gridLayout_10">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <item row="0" column="1">
-             <widget class="QToolButton" name="zoomInButton">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>Assets/icons8-plus-math-50.png</normaloff>Assets/icons8-plus-math-50.png</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>24</width>
-                <height>24</height>
-               </size>
+           <layout class="QHBoxLayout" name="horizontalLayout_13">
+            <item>
+             <layout class="QGridLayout" name="gridLayout_13">
+              <item row="0" column="0">
+               <widget class="QToolButton" name="saveCustom">
+                <property name="toolTip">
+                 <string>Save Route</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset>
+                  <normaloff>Assets/icons8-save-filled-24.png</normaloff>Assets/icons8-save-filled-24.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>24</width>
+                  <height>24</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QToolButton" name="loadCustom">
+                <property name="toolTip">
+                 <string>Load Route</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset>
+                  <normaloff>Assets/icons8-opened-folder-24.png</normaloff>Assets/icons8-opened-folder-24.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>24</width>
+                  <height>24</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="Line" name="line_4">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
               </property>
              </widget>
             </item>
-            <item row="0" column="2">
-             <widget class="QToolButton" name="zoomOutButton">
-              <property name="text">
-               <string/>
+            <item>
+             <layout class="QGridLayout" name="gridLayout_10">
+              <property name="leftMargin">
+               <number>0</number>
               </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>Assets/icons8-subtract-50.png</normaloff>Assets/icons8-subtract-50.png</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>24</width>
-                <height>24</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QToolButton" name="rotateL">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>Assets/icons8-rotate-right-filled.png</normaloff>Assets/icons8-rotate-right-filled.png</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>24</width>
-                <height>24</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="2">
-             <widget class="QToolButton" name="rotateR">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>Assets/icons8-rotate-left-filled.png</normaloff>Assets/icons8-rotate-left-filled.png</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>24</width>
-                <height>24</height>
-               </size>
-              </property>
-             </widget>
+              <item row="2" column="1">
+               <widget class="QToolButton" name="rotateL">
+                <property name="toolTip">
+                 <string>Rotate Clockwise</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset>
+                  <normaloff>Assets/icons8-rotate-right-filled.png</normaloff>Assets/icons8-rotate-right-filled.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>24</width>
+                  <height>24</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QToolButton" name="zoomInButton">
+                <property name="toolTip">
+                 <string>Zoom In</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset>
+                  <normaloff>Assets/icons8-plus-math-50.png</normaloff>Assets/icons8-plus-math-50.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>24</width>
+                  <height>24</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="2">
+               <widget class="QToolButton" name="rotateR">
+                <property name="toolTip">
+                 <string>Rotate Counter-clockwise</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset>
+                  <normaloff>Assets/icons8-rotate-left-filled.png</normaloff>Assets/icons8-rotate-left-filled.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>24</width>
+                  <height>24</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="2">
+               <widget class="QToolButton" name="zoomOutButton">
+                <property name="toolTip">
+                 <string>Zoom Out</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset>
+                  <normaloff>Assets/icons8-subtract-50.png</normaloff>Assets/icons8-subtract-50.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>24</width>
+                  <height>24</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
            </layout>
-          </item>
-          <item>
-           <widget class="Line" name="line">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
           </item>
           <item>
            <widget class="QLabel" name="label_11">
@@ -638,35 +698,43 @@
             <item row="0" column="0">
              <widget class="QLabel" name="label_13">
               <property name="text">
-               <string>X:</string>
+               <string>Action:</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox">
-              <property name="decimals">
-               <number>1</number>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_15">
-              <property name="text">
-               <string>Y:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_2">
+             <widget class="QComboBox" name="comboBox_2">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
-              <property name="decimals">
-               <number>1</number>
-              </property>
+              <item>
+               <property name="text">
+                <string>None</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Set Speed</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Set Z Position</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Take Picture</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Run Script</string>
+               </property>
+              </item>
              </widget>
             </item>
            </layout>
@@ -747,6 +815,12 @@
            <widget class="QPushButton" name="startCustom">
             <property name="enabled">
              <bool>false</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
             <property name="text">
              <string>Start Scan</string>
@@ -838,26 +912,6 @@
      </layout>
     </item>
    </layout>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>720</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuFile">
-    <property name="title">
-     <string>File</string>
-    </property>
-    <addaction name="actionLoad_Basic_Scan"/>
-    <addaction name="actionSave_Basic_Scan"/>
-    <addaction name="actionLoad_Custom_Scan"/>
-    <addaction name="actionSave_Custom_Scan"/>
-   </widget>
-   <addaction name="menuFile"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionLoad_Basic_Scan">

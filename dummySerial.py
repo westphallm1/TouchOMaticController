@@ -9,8 +9,8 @@ class Serial():
 
     def readline(self):
         # Simulate waiting for a response
-        time.sleep(5)
-        return "ok\n"
+        time.sleep(0.5)
+        return bytes("ok\n","ascii")
 
 
 def get_ports():

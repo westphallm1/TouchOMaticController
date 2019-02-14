@@ -54,7 +54,7 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
 
     @property
     def info(self):
-        return {"x":self.x,"y":self.y}
+        return {"x":self.x,"y":self.y,"action":None}
 
 def onlywhendrawing(function):
     """Only call function if object's drawing property is true"""
@@ -175,6 +175,17 @@ class QCDScene(QtWidgets.QGraphicsScene):
         for mover in self.selectedItems():
             self._removeMover(mover)
 
+    def appendWaypoint(self,x=0,y=0,action=None):
+        start = self.tail
+        if not self.traceline:
+            self.traceline = self.addLine(start.x,start.y, x, y, self._pen)
+        new_tail = QDragPoint(x,y,self.traceline,r=self.head.r)
+        self.tail.next = new_tail
+        new_tail.prev = self.tail
+        self.tail = new_tail
+        self.traceline = None
+        self.addItem(new_tail)
+
     @onlywhendrawing
     def mouseMoveEvent(self, event):
         if event.buttons() == QtCore.Qt.NoButton:
@@ -187,20 +198,12 @@ class QCDScene(QtWidgets.QGraphicsScene):
             self._movemultiple(event)
         self._lastpos = event.scenePos()
 
-
-
     @onlywhendrawing
     def mouseReleaseEvent(self,event):
         pos = event.scenePos()
         if self._moved:
             self._moved = False
-            new_tail = QDragPoint(pos.x(),pos.y(),self.traceline,
-                    r = self.head.r)
-            self.tail.next = new_tail
-            new_tail.prev = self.tail
-            self.tail = new_tail
-            self.traceline = None
-            self.addItem(new_tail)
+            self.appendWaypoint(pos.x(),pos.y())
 
 class QClickAndDraw(QtWidgets.QGraphicsView):
     def __init__(self, parent):
@@ -262,3 +265,7 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
 
     def dumpWaypointsInfo(self):
         return [h.info for h in self.waypoints]
+
+    def loadWaypointsInfo(self,info):
+        for point in info[1:]:
+            self._scene.appendWaypoint(**point)

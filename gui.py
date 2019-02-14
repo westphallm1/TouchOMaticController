@@ -7,6 +7,8 @@ import yaml
 import logging
 import codecs
 import serial
+import serial.tools.list_ports
+import dummySerial
 import touch_o_matic
 import clickanddraw
 
@@ -66,7 +68,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         
         # Connection Menu
         self.ser = None
-        self.serialPort.addItems(['/dev/ttyACM0'])
+        self._add_serial_devices()
         self.serialConnect.clicked.connect(self.connect)
 
         # Controls Menu
@@ -96,6 +98,14 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
 
         # List of known CNC machines
         self._readMachineInfo()
+
+    def _add_serial_devices(self):
+        ports = serial.tools.list_ports.comports()
+        good_ports = [p[0] for p in ports if p[2] != 'n/a']
+        if good_ports:
+            self.serialPort.addItems(good_ports)
+        else:
+            self.serialPort.addItems(["Test Port (software only)"])
 
     @property
     def machine(self):
@@ -149,19 +159,43 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.yLengthValue.setValue(self.machine['dimensions']['y-axis'])
 
     def _setupGraphics(self):
-        # Todo: Better names
+        # Add View to GUI
         self.freeDrawView = clickanddraw.QClickAndDraw(self.customTab)
         self.freeDrawView.setObjectName("freeDrawView")
         self.horizontalLayout_11.addWidget(self.freeDrawView)
+        # Bind actions to buttons
         self.zoomInButton.clicked.connect(self.freeDrawView.zoomIn)
         self.zoomOutButton.clicked.connect(self.freeDrawView.zoomOut)
         self.rotateL.clicked.connect(self.freeDrawView.rotateL)
         self.rotateR.clicked.connect(self.freeDrawView.rotateR)
         self.startCustom.clicked.connect(self.startScanningCustom)
+        # File I/O buttons
+        self.saveCustom.clicked.connect(self.saveCustomFile)
+        self.loadCustom.clicked.connect(self.loadCustomFile)
+
+    def saveCustomFile(self):
+        to_save = QtWidgets.QFileDialog.getSaveFileName(self,"Save Scan Path",
+                filter="YAML files (*.yaml)")
+        if to_save:
+            waypoints = self.freeDrawView.dumpWaypointsInfo()
+            with open(to_save[0],'w') as ts:
+                ts.write(yaml.dump(waypoints))
+         
+    def loadCustomFile(self):
+        to_load = QtWidgets.QFileDialog.getOpenFileName(self,"Load Scan Path",
+                filter="YAML files (*.yaml)")
+        if to_load:
+            with open(to_load[0]) as tl:
+                info = yaml.load(tl.read())
+                self.freeDrawView.loadWaypointsInfo(info)
 
     def connect(self):
-        self.ser = serial.Serial(self.serialPort.currentText(),
-                self.baudRateValue.value())
+        try:
+            self.ser = serial.Serial(self.serialPort.currentText(),
+                    self.baudRateValue.value())
+        except:
+            self.ser = dummySerial.Serial(self.serialPort.currentText(),
+                    self.baudRateValue.value())
 
         self.ser_tee = SerialTeeThread(self,self.ser)
         self.ser_tee.updated.connect(self.commandLog.appendPlainText)
