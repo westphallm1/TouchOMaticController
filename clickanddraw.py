@@ -99,6 +99,9 @@ class QCDScene(QtWidgets.QGraphicsScene):
     
     @onlywhendrawing
     def mousePressEvent(self, event):
+        # unselect all items
+        for item in self.selectedItems():
+            item.setSelected(False)
         self._mover = None
         self._moving = False
         self._lastpos = event.scenePos()
@@ -107,6 +110,8 @@ class QCDScene(QtWidgets.QGraphicsScene):
             if not isinstance(self._mover,QDragPoint):
                 self._mover = None
                 self._moving = True
+            else:
+                self._mover.setSelected(True)
         elif event.buttons() == QtCore.Qt.RightButton:
             mover = self.itemAt(event.scenePos(),QtGui.QTransform())
             if isinstance(mover,QDragPoint):
@@ -138,6 +143,7 @@ class QCDScene(QtWidgets.QGraphicsScene):
         """ Append a new line segment at the clicked node """
         pos = event.scenePos()
         if self._mover:
+            self._mover.setSelected(False)
             new_mover = QDragPoint(pos.x(),pos.y(), r = self.head.r)
             new_mover.traceline = self.addLine(self._mover.x,self._mover.y,
                                                pos.x(),pos.y(),self._pen)
@@ -148,6 +154,7 @@ class QCDScene(QtWidgets.QGraphicsScene):
             if self._mover == self.tail:
                 self.tail = new_mover
             self._mover = new_mover
+            self._mover.setSelected(True)
 
     def _movenew(self,event):
         self._moved = True
@@ -219,6 +226,10 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
             yield head
             head = head.next
 
+    @property
+    def scene(self):
+        return self._scene
+
     def pan(self):
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
@@ -262,6 +273,13 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
         y_bound = machine['dimensions']['y-axis']
         grid_size = machine['dimensions']['grid-size']
         self._scene.setGrid(x_bound,y_bound,grid_size)
+
+    def waypointIndex(self,waypoint):
+        # Todo: more efficient
+        for i,wp in enumerate(self.waypoints):
+            if wp == waypoint:
+                return i
+        raise IndexError
 
     def dumpWaypointsInfo(self):
         return [h.info for h in self.waypoints]

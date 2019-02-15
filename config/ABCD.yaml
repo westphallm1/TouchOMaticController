@@ -2,17 +2,19 @@ name: ABCD
 units: mm
 default: true
 primary-axis: y
-# if the machine isn't callibrated to proper gcode units
-scale-factor: 0.25
 dimensions:
   x-axis: 200
-  y-axis: -800 
+  y-axis: 800 
   z-axis: null
   grid-size: 50
 
+# if the machine isn't callibrated to proper gcode units
+scale-factor:
+  x: 0.25
+  y: -0.25
 instructions:
   # connect to the machine
-  connect: \r\n\r\nG21
+  connect: \r\n\r\nG21\r\n
   # run after every scan
   postfix: null
   # move to an absolute position

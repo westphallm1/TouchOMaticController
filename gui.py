@@ -74,6 +74,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         # Controls Menu
         self.startScan.clicked.connect(self.startScanning)
         self.stopScan.clicked.connect(self.stopScanning)
+        self.stopCustom.clicked.connect(self.stopScanning)
         self.emergencyStop.clicked.connect(self.emergencyStopScanning)
 
 
@@ -118,18 +119,34 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
 
     @property
     @stringdecoder
-    def absolute(self):
-        return self.machine['instructions']['absolute']
-
-    @property
-    @stringdecoder
-    def relative(self):
-        return self.machine['instructions']['relative']
-
-    @property
-    @stringdecoder
     def dimensions(self):
         return self.machine['dimensions']
+
+ 
+    def _scaled_key(self,dic,key):
+        """Another awful meta class that replaces the string formatting
+        function with one that multiplies numeric values by a scale factor
+        """
+        try:
+            scale = self.machine['scale-factor']
+        except:
+            scale = dict(x=1,y=1,z=1)
+        
+        string = dic[key]
+        class _keyscaler():
+            def __init__(self,string,scale):
+                self._st = string
+                self._sc = scale
+            def format(self,*args,**kwargs):
+                for dim in 'x','y','z':
+                    if dim in kwargs:
+                        kwargs[dim]*=self._sc[dim]
+                return self._st.format(*args,**kwargs)
+
+        return _keyscaler(string,scale)
+
+    def scaled(self,key1,key2):
+        return self._scaled_key(self.instructions[key1],key2)
 
     def _readMachineInfo(self):
         config_dir = os.path.join(os.path.split(__file__)[0],"config")
@@ -172,6 +189,19 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         # File I/O buttons
         self.saveCustom.clicked.connect(self.saveCustomFile)
         self.loadCustom.clicked.connect(self.loadCustomFile)
+        # Selection signal
+        self.freeDrawView.scene.selectionChanged.connect(self.showWaypointInfo)
+
+    def showWaypointInfo(self):
+        if len(self.freeDrawView.scene.selectedItems()) == 1:
+            # find the index of the added item (inefficient)
+            selected, = self.freeDrawView.scene.selectedItems()
+            idx = (self.freeDrawView.waypointIndex(selected))
+            self.waypointLabel.setText("Waypoint {}".format(idx))
+            self._waypoint = selected
+        else:
+            self.waypointLabel.setText("Waypoint --")
+            self._waypoint = None
 
     def saveCustomFile(self):
         to_save = QtWidgets.QFileDialog.getSaveFileName(self,"Save Scan Path",
@@ -204,56 +234,69 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 "Connected to {} at baudrate {}"
                 .format(self.serialPort.currentText(), self.baudRateValue.value()))
 
-        self.ser.write(bytes(self.instructions['connect']+'\r\n','ascii'))
+        self.ser.write(bytes(self.instructions['connect'],'ascii'))
         for button in self.cmdButtons:
              button.setEnabled(True)
 
 
     def stepxPlus(self):
-        self.ser_tee.start([self.relative['x'].format(x=self.manualStepValue.value())])
+        self.ser_tee.start([self.scaled('relative','x')
+            .format(x=self.manualStepValue.value())])
 
     def stepxMinus(self):
-        self.ser_tee.start([self.relative['x'].format(x=-self.manualStepValue.value())])
+        self.ser_tee.start([self.scaled('relative','x')
+            .format(x=-self.manualStepValue.value())])
     def stepyPlus(self):
-        self.ser_tee.start([self.relative['y'].format(y=self.manualStepValue.value())])
+        self.ser_tee.start([self.scaled('relative','y')
+            .format(y=self.manualStepValue.value())])
     def stepyMinus(self):
-        self.ser_tee.start([self.relative['y'].format(y=-self.manualStepValue.value())])
+        self.ser_tee.start([self.scaled('relative','y')
+            .format(y=-self.manualStepValue.value())])
 
 
-    def _getTimeInfo(self):
-        time_multiplier = {"Seconds":1,"Minutes":60,"Hours":3600}[
-                self.yIntervalUnits.currentText()]
-        time_interval = self.yIntervalValue.value() * time_multiplier
+    def _getTimeInfo(self,custom = False):
+        if custom:
+            y_interval = self.customIntervalValue.value()
+            y_units = self.customIntervalUnits.currentText()
+        else:
+            y_interval = self.yIntervalValue.value()
+            y_units = self.yIntervalUnits.currentText()
+        time_multiplier = {"Seconds":1,"Minutes":60,"Hours":3600}[y_units]
+        time_interval = y_interval * time_multiplier
         return {
-            "units":self.yIntervalUnits.currentText(),
-            "interval":self.yIntervalValue.value(),
+            "units":y_units,
+            "interval":y_interval,
             "interval_s":time_interval
         }
-    def startScanning(self):
-        time_info = self._getTimeInfo()
+
+    def _startScanning(self,custom=False):
+        time_info = self._getTimeInfo(custom=custom)
         self.commandLog.appendPlainText("Starting scan on {} {} interval."
                 .format(time_info["interval"],time_info["units"]))
-        self.sendScanCommand()
-        for button in self.cmdButtons[3:]:
-             button.setEnabled(False)
+        if custom:
+            waypoints = self.freeDrawView.dumpWaypointsInfo()
+            commands = [self.scaled('absolute','xy').format(**p)
+                        for p in waypoints]
+        else:
+            there = self.scaled('absolute','y').format(
+                    y=self.yLengthValue.value())
+            back = self.scaled('absolute','y').format(
+                    y=0)
+            commands = [there,back]
+        self.sendScanCommand(commands=commands)
         self.scanTimer.start(time_info["interval_s"]*1000)
 
+    def startScanning(self):
+        self._startScanning(custom=False)
+
     def startScanningCustom(self):
-        time_info = self._getTimeInfo()
-        self.commandLog.appendPlainText("Starting custom scan on {} {} interval."
-                .format(time_info["interval"],time_info["units"]))
-        waypoints = self.freeDrawView.dumpWaypointsInfo()
-        commands = [self.instructions['absolute']['xy'].format(**point)
-                for point in waypoints]
-        self.sendScanCommand(commands)
+        self._startScanning(custom=True)
 
     def stopScanning(self):
         self.commandLog.appendPlainText("Stopping scan.")
         self.scanTimer.stop()
         self.ser_tee.stop()
         self.ser_tee.quit()
-        for button in self.cmdButtons[2:-1]:
-             button.setEnabled(True)
 
     def emergencyStopScanning(self):
         self.stopScanning()
@@ -262,13 +305,9 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.ser_tee.start([self.instructions['stop']])
 
     def sendScanCommand(self,commands=None):
-        if not commands:
-            GO_CMD = self.instructions['absolute']['y'].format(
-                    y=self.yLengthValue.value())
-            BACK_CMD = self.instructions['absolute']['y'].format(
-                    y=0)
-            commands = [GO_CMD,BACK_CMD]
-        self.ser_tee.start(commands)
+        if commands:
+            self._commands = commands
+        self.ser_tee.start(self._commands)
 
 def run():
     app = QtWidgets.QApplication(sys.argv)
