@@ -99,9 +99,6 @@ class QCDScene(QtWidgets.QGraphicsScene):
     
     @onlywhendrawing
     def mousePressEvent(self, event):
-        # unselect all items
-        for item in self.selectedItems():
-            item.setSelected(False)
         self._mover = None
         self._moving = False
         self._lastpos = event.scenePos()
@@ -111,6 +108,9 @@ class QCDScene(QtWidgets.QGraphicsScene):
                 self._mover = None
                 self._moving = True
             else:
+                # unselect all items besides the mover
+                for item in self.selectedItems():
+                    item.setSelected(False)
                 self._mover.setSelected(True)
         elif event.buttons() == QtCore.Qt.RightButton:
             mover = self.itemAt(event.scenePos(),QtGui.QTransform())
