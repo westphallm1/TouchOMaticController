@@ -24,9 +24,9 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
 
         # Set artists
         self._updatePens()
+        self.setBrush(QtGui.QBrush(QtGui.QColor("white")))
 
     def _updatePens(self):
-        self.setBrush(QtGui.QBrush(QtGui.QColor("white")))
         self._normalPen = QtGui.QPen(QtGui.QColor("black"))
         self._normalPen.setWidth(self.r/8)
         self.setPen(self._normalPen)
@@ -56,6 +56,19 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
     def info(self):
         return {"x":self.x,"y":self.y,"action":None}
 
+class QMachineIcon(QDragPoint):
+    def __init__(self, *args,**kwargs):
+        super().__init__(*args,**kwargs)
+        # Set flags
+        self.setZValue(99999)
+        self.setFlag(self.ItemIsSelectable,False)
+
+        # Set artists
+        self._updatePens()
+        self.setBrush(QtGui.QBrush(QtGui.QColor("yellow")))
+    def setScenePos(self,x,y):
+        pass
+
 def onlywhendrawing(function):
     """Only call function if object's drawing property is true"""
     def wrapper(self,*args,**kwargs):
@@ -78,6 +91,7 @@ class QCDScene(QtWidgets.QGraphicsScene):
         self.head = QDragPoint(0,0)
         self.tail = self.head
         self.addItem(self.head)
+        self.addItem(QMachineIcon(0,0))
         self.drawing = True
 
     def setGrid(self, xf, yf,GRID_STEP = 50):
@@ -251,7 +265,6 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
     def unsetRBSelect(self):
         self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
         self._scene.drawing = True
-
 
     def keyPressEvent(self,event):
         if event.key() == QtCore.Qt.Key_Shift:

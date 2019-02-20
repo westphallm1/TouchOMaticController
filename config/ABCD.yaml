@@ -14,7 +14,7 @@ scale-factor:
   y: -0.25
 instructions:
   # connect to the machine
-  connect: \r\n\r\nG21\r\n
+  connect: \r\n\r\nG21 G17 G01\r\n
   # run after every scan
   postfix: null
   # move to an absolute position
@@ -30,5 +30,7 @@ instructions:
     x: G91 X{x}
     y: G91 Y{y}
     z: G91 Z{x}
+  # get position info
+  info: "?"
   # stop in the middle of movement
   stop: "!"

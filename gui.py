@@ -12,8 +12,12 @@ import dummySerial
 import touch_o_matic
 import clickanddraw
 
+serial_lock = QtCore.QMutex()
 
 class SerialTeeThread(QtCore.QThread):
+    """ Write commands to the serial port and wait for a result without
+    blocking the main thread, and emit messages sent/recieved as a signal
+    """
     updated = QtCore.pyqtSignal(str)
 
     def __init__(self,parent,ser_dev):
@@ -30,6 +34,7 @@ class SerialTeeThread(QtCore.QThread):
 
     def run(self):
         for message in self.messages:
+            serial_lock.lock()
             if self._stopped:
                 self._stopped = False
                 return
@@ -37,11 +42,29 @@ class SerialTeeThread(QtCore.QThread):
             self.ser.write(bytes(message+'\r\n','ascii'))
             result = self.ser.readline()
             self.updated.emit(result.strip().decode('ascii'))
+            serial_lock.unlock()
 
     def stop(self):
         self._stopped = True
 
+class SerialInfoThread(QtCore.QThread):
+    """ Poll the info command repeatedly, and emit its result as a signal """
+    updated = QtCore.pyqtSignal(str)
 
+    def __init__(self, parent, ser_dev, info_cmd, interval=100):
+        super(QtCore.QThread,self).__init__(parent)
+        self.ser = ser_dev
+        self.info_cmd = info_cmd
+        self.interval = interval #interval to poll in ms
+
+    def run(self):
+        while True:
+            serial_lock.lock()
+            self.ser.write(bytes(self.info_cmd,'ascii'))
+            result = self.ser.readline()
+            self.updated.emit(result.strip().decode('ascii'))
+            serial_lock.unlock()
+            time.sleep(self.interval/1000.)
 
 def stringdecoder(function):
     """Wrapper for functions that return a dictionary. Converts the dictionary
@@ -56,6 +79,7 @@ def stringdecoder(function):
             if isinstance(self._dict[item],str):
                 return codecs.decode(self._dict[item],'unicode_escape')
             return self._dict[item]
+
     def wrapper(self,*args,**kwargs):
         return __stringdecoder(function(self,*args,**kwargs))
 
@@ -229,6 +253,12 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
 
         self.ser_tee = SerialTeeThread(self,self.ser)
         self.ser_tee.updated.connect(self.commandLog.appendPlainText)
+
+        self.ser_info = SerialInfoThread(self,self.ser,
+                self.instructions['info'])
+
+        self.ser_info.updated.connect(lambda x:print(x))
+        self.ser_info.start()
 
         self.commandLog.appendPlainText(
                 "Connected to {} at baudrate {}"

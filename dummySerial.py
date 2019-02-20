@@ -8,8 +8,7 @@ class Serial():
         pass
 
     def readline(self):
-        # Simulate waiting for a response
-        time.sleep(0.5)
+        # It's always OK
         return bytes("ok\n","ascii")
 
 
