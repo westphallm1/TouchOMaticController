@@ -31,6 +31,9 @@ instructions:
     y: G91 Y{y}
     z: G91 Z{x}
   # get position info
-  info: "?"
+  info:
+    command: "?"
+    regex: MPos:(-?[0-9]+\.?[0-9]*),(-?[0-9]+\.?[0-9]*),(-?[0-9]+\.?[0-9]*)
+    order: xyz
   # stop in the middle of movement
   stop: "!"

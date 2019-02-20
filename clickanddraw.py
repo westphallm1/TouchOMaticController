@@ -68,6 +68,11 @@ class QMachineIcon(QDragPoint):
         self.setBrush(QtGui.QBrush(QtGui.QColor("yellow")))
     def setScenePos(self,x,y):
         pass
+    
+    def _setScenePos(self,x,y):
+        """Change the function name so it doesn't get moved by mouse
+        dragging, only function calls"""
+        super().setScenePos(x,y)
 
 def onlywhendrawing(function):
     """Only call function if object's drawing property is true"""
@@ -91,7 +96,8 @@ class QCDScene(QtWidgets.QGraphicsScene):
         self.head = QDragPoint(0,0)
         self.tail = self.head
         self.addItem(self.head)
-        self.addItem(QMachineIcon(0,0))
+        self.machine_icon = QMachineIcon(0,0)
+        self.addItem(self.machine_icon)
         self.drawing = True
 
     def setGrid(self, xf, yf,GRID_STEP = 50):
@@ -280,6 +286,10 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
 
     def rotateR(self):
         self.rotate(-30)
+    
+    def moveMachineMarker(self,x,y):
+        self._scene.machine_icon._setScenePos(x,y)
+
 
     def setMachine(self,machine):
         x_bound = machine['dimensions']['x-axis']

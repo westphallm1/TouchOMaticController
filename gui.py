@@ -2,6 +2,7 @@ import sys
 import os
 import threading
 import time
+import re
 from PyQt5 import QtCore, QtGui, QtWidgets
 import yaml
 import logging
@@ -11,7 +12,6 @@ import serial.tools.list_ports
 import dummySerial
 import touch_o_matic
 import clickanddraw
-
 serial_lock = QtCore.QMutex()
 
 class SerialTeeThread(QtCore.QThread):
@@ -33,38 +33,58 @@ class SerialTeeThread(QtCore.QThread):
         QtCore.QThread.start(self)
 
     def run(self):
+        #self.setPriority(self.LowPriority)
         for message in self.messages:
-            serial_lock.lock()
             if self._stopped:
                 self._stopped = False
                 return
             self.updated.emit('> ' + message)
+            serial_lock.lock()
+            self.ser.flushInput()
+            self.ser.flushOutput()
             self.ser.write(bytes(message+'\r\n','ascii'))
-            result = self.ser.readline()
-            self.updated.emit(result.strip().decode('ascii'))
+            #result = self.ser.readline()
             serial_lock.unlock()
+            #self.updated.emit(result.strip().decode('ascii'))
 
     def stop(self):
         self._stopped = True
 
 class SerialInfoThread(QtCore.QThread):
     """ Poll the info command repeatedly, and emit its result as a signal """
-    updated = QtCore.pyqtSignal(str)
+    updated = QtCore.pyqtSignal(dict)
 
-    def __init__(self, parent, ser_dev, info_cmd, interval=100):
+    def __init__(self, parent, ser_dev, info, interval=100):
         super(QtCore.QThread,self).__init__(parent)
         self.ser = ser_dev
-        self.info_cmd = info_cmd
+        self.info_cmd = bytes(info['command'],'ascii')
+        self.regex = re.compile(info['regex'])
+        print(self.regex)
+        self.order = info['order']
         self.interval = interval #interval to poll in ms
+        
 
     def run(self):
+        #self.setPriority(self.HighPriority)
         while True:
             serial_lock.lock()
-            self.ser.write(bytes(self.info_cmd,'ascii'))
-            result = self.ser.readline()
-            self.updated.emit(result.strip().decode('ascii'))
+            self.ser.flushInput()
+            self.ser.flushOutput()
+            self.ser.write(self.info_cmd)
+            result = self.ser.readline().strip().decode('ascii')
+            self.parse_position(result)
             serial_lock.unlock()
             time.sleep(self.interval/1000.)
+            
+    def parse_position(self,position):
+        match = re.search(self.regex,position)
+        out = {'x':None, 'y':None, 'z':None}
+        if match:
+            for coord in 'xyz':
+                out[coord] = float(match.groups()[self.order.index(coord)])
+            self.updated.emit(out)
+            return True
+			 
 
 def stringdecoder(function):
     """Wrapper for functions that return a dictionary. Converts the dictionary
@@ -257,7 +277,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.ser_info = SerialInfoThread(self,self.ser,
                 self.instructions['info'])
 
-        self.ser_info.updated.connect(lambda x:print(x))
+        self.ser_info.updated.connect(self.moveMachineMarker)
         self.ser_info.start()
 
         self.commandLog.appendPlainText(
@@ -269,6 +289,23 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
              button.setEnabled(True)
 
 
+    def _close_enough(self, v1, v2, threshold=.25):
+        return abs(v1 - v2) < threshold
+		
+    def moveMachineMarker(self,event):
+        try:
+            scale = self.machine['scale-factor']
+        except:
+            scale = dict(x=1,y=1,z=1)
+        x = event['x']/scale['x']
+        y = event['y']/scale['y']
+        waypoints = self.freeDrawView.dumpWaypointsInfo()
+        for i,c in enumerate(waypoints or []):
+            if self._close_enough(x,c['x']) and \
+			   self._close_enough(y,c['y']):
+                print("At waypoint {}!".format(i))
+        self.freeDrawView.moveMachineMarker(x,y)
+        
     def stepxPlus(self):
         self.ser_tee.start([self.scaled('relative','x')
             .format(x=self.manualStepValue.value())])
@@ -305,8 +342,13 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 .format(time_info["interval"],time_info["units"]))
         if custom:
             waypoints = self.freeDrawView.dumpWaypointsInfo()
-            commands = [self.scaled('absolute','xy').format(**p)
+            move_commands = [self.scaled('absolute','xy').format(**p)
                         for p in waypoints]
+            commands = []
+            for command in move_commands:
+                commands.append(command)
+                commands.append("G4 P0.1")
+				
         else:
             there = self.scaled('absolute','y').format(
                     y=self.yLengthValue.value())
