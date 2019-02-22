@@ -3,6 +3,7 @@ import os
 import threading
 import time
 import re
+import queue
 from PyQt5 import QtCore, QtGui, QtWidgets
 import yaml
 import logging
@@ -52,6 +53,7 @@ class SerialTeeThread(QtCore.QThread):
 
 class SerialInfoThread(QtCore.QThread):
     """ Poll the info command repeatedly, and emit its result as a signal """
+    commandSent = QtCore.pyqtSignal(str)
     updated = QtCore.pyqtSignal(dict)
 
     def __init__(self, parent, ser_dev, info, interval=100):
@@ -59,31 +61,57 @@ class SerialInfoThread(QtCore.QThread):
         self.ser = ser_dev
         self.info_cmd = bytes(info['command'],'ascii')
         self.regex = re.compile(info['regex'])
-        print(self.regex)
         self.order = info['order']
         self.interval = interval #interval to poll in ms
+        self.tQ = queue.Queue()
+        self._delta = 0
+        self._last_pos = {'x':0,'y':0,'z':0}
         
 
     def run(self):
         #self.setPriority(self.HighPriority)
         while True:
-            serial_lock.lock()
-            self.ser.flushInput()
-            self.ser.flushOutput()
-            self.ser.write(self.info_cmd)
-            result = self.ser.readline().strip().decode('ascii')
-            self.parse_position(result)
-            serial_lock.unlock()
+            # ping the machine's position
+            self.ping()
+            # send a command if we have one in the pipeline
+            self.send_command()
             time.sleep(self.interval/1000.)
-            
+
+    def send_command(self):
+        if self.tQ.empty() or self._delta > 1e-5:
+            return
+        print(self._delta)
+        message = self.tQ.get()
+        self.commandSent.emit('> ' + message)
+        self.ser.write(bytes(message+'\r\n','ascii'))
+        #result = self.ser.readline()
+        #self.updated.emit(result.strip().decode('ascii'))
+
+    def ping(self):
+        self.ser.flushInput()
+        self.ser.flushOutput()
+        self.ser.write(self.info_cmd)
+        result = self.ser.readline().strip().decode('ascii')
+        self.parse_position(result)
+
     def parse_position(self,position):
         match = re.search(self.regex,position)
         out = {'x':None, 'y':None, 'z':None}
         if match:
+            self._delta = 0
             for coord in 'xyz':
                 out[coord] = float(match.groups()[self.order.index(coord)])
+                # compute the squared distance travelled since the last ping
+                self._delta += (out[coord]-self._last_pos[coord])**2
+            self._last_pos = out
             self.updated.emit(out)
             return True
+
+    def enqueue(self,items):
+        if isinstance(items,str):
+            self.tQ.put(items)
+        else:
+            [self.tQ.put(item) for item in items]
 			 
 
 def stringdecoder(function):
@@ -273,14 +301,15 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
             self.ser = dummySerial.Serial(self.serialPort.currentText(),
                     self.baudRateValue.value())
 
-        self.ser_tee = SerialTeeThread(self,self.ser)
-        self.ser_tee.updated.connect(self.commandLog.appendPlainText)
+        #self.ser_tee = SerialTeeThread(self,self.ser)
+        #self.ser_tee.updated.connect(self.commandLog.appendPlainText)
 
-        #self.ser_info = SerialInfoThread(self,self.ser,
-        #        self.instructions['info'])
+        self.ser_info = SerialInfoThread(self,self.ser,
+                self.instructions['info'])
 
-        #self.ser_info.updated.connect(self.moveMachineMarker)
-        #self.ser_info.start()
+        self.ser_info.updated.connect(self.moveMachineMarker)
+        self.ser_info.commandSent.connect(self.commandLog.appendPlainText)
+        self.ser_info.start()
 
         self.commandLog.appendPlainText(
                 "Connected to {} at baudrate {}"
@@ -302,24 +331,20 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         x = event['x']/scale['x']
         y = event['y']/scale['y']
         waypoints = self.freeDrawView.dumpWaypointsInfo()
-        for i,c in enumerate(waypoints or []):
-            if self._close_enough(x,c['x']) and \
-			   self._close_enough(y,c['y']):
-                print("At waypoint {}!".format(i))
         self.freeDrawView.moveMachineMarker(x,y)
         
     def stepxPlus(self):
-        self.ser_tee.start([self.scaled('relative','x')
+        self.ser_info.enqueue([self.scaled('relative','x')
             .format(x=self.manualStepValue.value())])
 
     def stepxMinus(self):
-        self.ser_tee.start([self.scaled('relative','x')
+        self.ser_info.enqueue([self.scaled('relative','x')
             .format(x=-self.manualStepValue.value())])
     def stepyPlus(self):
-        self.ser_tee.start([self.scaled('relative','y')
+        self.ser_info.enqueue([self.scaled('relative','y')
             .format(y=self.manualStepValue.value())])
     def stepyMinus(self):
-        self.ser_tee.start([self.scaled('relative','y')
+        self.ser_info.enqueue([self.scaled('relative','y')
             .format(y=-self.manualStepValue.value())])
 
 
@@ -345,6 +370,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
     def setNewHome(self):
         cmd = self.instructions['set-home']
         self.sendScanCommand(commands=[cmd])
+        self.freeDrawView.moveMachineMarker(0,0)
         
     def _startScanning(self,custom=False):
         time_info = self._getTimeInfo(custom=custom)
@@ -377,8 +403,8 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
     def stopScanning(self):
         self.commandLog.appendPlainText("Stopping scan.")
         self.scanTimer.stop()
-        self.ser_tee.stop()
-        self.ser_tee.quit()
+        #self.ser_tee.stop()
+        #self.ser_tee.quit()
 
     def emergencyStopScanning(self):
         self.stopScanning()
@@ -389,7 +415,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
     def sendScanCommand(self,commands=None):
         if commands:
             self._commands = commands
-        self.ser_tee.start(self._commands)
+        self.ser_info.enqueue(self._commands)
 
 def run():
     app = QtWidgets.QApplication(sys.argv)
