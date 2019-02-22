@@ -12,6 +12,7 @@ dimensions:
 scale-factor:
   x: 0.25
   y: -0.25
+
 instructions:
   # connect to the machine
   connect: \r\n\r\nG21 G17 G01\r\n
@@ -30,6 +31,8 @@ instructions:
     x: G91 X{x}
     y: G91 Y{y}
     z: G91 Z{x}
+  # set current position as home
+  set-home: G10 P0 L20 X0 Y0 Z0
   # get position info
   info:
     command: "?"

@@ -43,9 +43,9 @@ class SerialTeeThread(QtCore.QThread):
             self.ser.flushInput()
             self.ser.flushOutput()
             self.ser.write(bytes(message+'\r\n','ascii'))
-            #result = self.ser.readline()
+            result = self.ser.readline()
             serial_lock.unlock()
-            #self.updated.emit(result.strip().decode('ascii'))
+            self.updated.emit(result.strip().decode('ascii'))
 
     def stop(self):
         self._stopped = True
@@ -119,6 +119,8 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.startScan.clicked.connect(self.startScanning)
         self.stopScan.clicked.connect(self.stopScanning)
         self.stopCustom.clicked.connect(self.stopScanning)
+        self.setHome.clicked.connect(self.setNewHome)
+        self.goHome.clicked.connect(self.moveToHome)
         self.emergencyStop.clicked.connect(self.emergencyStopScanning)
 
 
@@ -274,11 +276,11 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.ser_tee = SerialTeeThread(self,self.ser)
         self.ser_tee.updated.connect(self.commandLog.appendPlainText)
 
-        self.ser_info = SerialInfoThread(self,self.ser,
-                self.instructions['info'])
+        #self.ser_info = SerialInfoThread(self,self.ser,
+        #        self.instructions['info'])
 
-        self.ser_info.updated.connect(self.moveMachineMarker)
-        self.ser_info.start()
+        #self.ser_info.updated.connect(self.moveMachineMarker)
+        #self.ser_info.start()
 
         self.commandLog.appendPlainText(
                 "Connected to {} at baudrate {}"
@@ -336,6 +338,14 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
             "interval_s":time_interval
         }
 
+    def moveToHome(self):
+        cmd = self.scaled('absolute','xy').format(x=0,y=0)
+        self.sendScanCommand(commands=[cmd])
+        
+    def setNewHome(self):
+        cmd = self.instructions['set-home']
+        self.sendScanCommand(commands=[cmd])
+        
     def _startScanning(self,custom=False):
         time_info = self._getTimeInfo(custom=custom)
         self.commandLog.appendPlainText("Starting scan on {} {} interval."
@@ -347,7 +357,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
             commands = []
             for command in move_commands:
                 commands.append(command)
-                commands.append("G4 P0.1")
+                #commands.append("G4 P0.1")
 				
         else:
             there = self.scaled('absolute','y').format(
