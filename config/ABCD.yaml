@@ -39,4 +39,4 @@ instructions:
     regex: WPos:(-?[0-9]+\.?[0-9]*),(-?[0-9]+\.?[0-9]*),(-?[0-9]+\.?[0-9]*)
     order: xyz
   # stop in the middle of movement
-  stop: "!"
+  stop: "!~"

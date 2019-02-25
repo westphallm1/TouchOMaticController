@@ -15,46 +15,28 @@ import touch_o_matic
 import clickanddraw
 serial_lock = QtCore.QMutex()
 
-class SerialTeeThread(QtCore.QThread):
-    """ Write commands to the serial port and wait for a result without
-    blocking the main thread, and emit messages sent/recieved as a signal
-    """
-    updated = QtCore.pyqtSignal(str)
-
-    def __init__(self,parent,ser_dev):
-        super(QtCore.QThread,self).__init__(parent)
-        self.ser = ser_dev
-        self._stopped = False
-
-    def set_serial(self,ser_dev):
-        self.ser = ser
-
-    def start(self,messages):
-        self.messages = messages
-        QtCore.QThread.start(self)
-
-    def run(self):
-        #self.setPriority(self.LowPriority)
-        for message in self.messages:
-            if self._stopped:
-                self._stopped = False
-                return
-            self.updated.emit('> ' + message)
-            serial_lock.lock()
-            self.ser.flushInput()
-            self.ser.flushOutput()
-            self.ser.write(bytes(message+'\r\n','ascii'))
-            result = self.ser.readline()
-            serial_lock.unlock()
-            self.updated.emit(result.strip().decode('ascii'))
-
-    def stop(self):
-        self._stopped = True
+class Command():
+    """ Container object for commands sent over serial and their metadata """
+    def __init__(self,text, sequence=None, instant=False,pos=None,
+            response=False):
+        # text to send over serial
+        self.text = text
+        # position in sequence of commands
+        self.sequence = sequence
+        # Can it be sent before the previous command completes?
+        self.instant = instant
+        # Where the machine is at when the command is sent
+        self.pos = None
+        # Do we care about the response from the command?
+        self.response = response
 
 class SerialInfoThread(QtCore.QThread):
     """ Poll the info command repeatedly, and emit its result as a signal """
-    commandSent = QtCore.pyqtSignal(str)
+
+    # signals
+    commandSent = QtCore.pyqtSignal(Command)
     updated = QtCore.pyqtSignal(dict)
+    responseReceived = QtCore.pyqtSignal(str)
 
     def __init__(self, parent, ser_dev, info, interval=100):
         super(QtCore.QThread,self).__init__(parent)
@@ -78,14 +60,17 @@ class SerialInfoThread(QtCore.QThread):
             time.sleep(self.interval/1000.)
 
     def send_command(self):
-        if self.tQ.empty() or self._delta > 1e-5:
+        if self.tQ.empty() or (
+                self._delta > 1e-5 and not self._peek().instant):
             return
-        print(self._delta)
-        message = self.tQ.get()
-        self.commandSent.emit('> ' + message)
+        cmd = self.tQ.get()
+        message = cmd.text
         self.ser.write(bytes(message+'\r\n','ascii'))
-        #result = self.ser.readline()
-        #self.updated.emit(result.strip().decode('ascii'))
+        cmd.pos = self._last_pos
+        self.commandSent.emit(cmd)
+        if cmd.response:
+            # will block until response is recieved
+            self.responseReceived.emit(self.ser.readline().strip().decode('ascii'))
 
     def ping(self):
         self.ser.flushInput()
@@ -107,12 +92,18 @@ class SerialInfoThread(QtCore.QThread):
             self.updated.emit(out)
             return True
 
+    def _peek(self):
+        return self.tQ.queue[0]
+
+    def clear(self):
+        while not self.tQ.empty():
+            self.tQ.get()
+
     def enqueue(self,items):
-        if isinstance(items,str):
-            self.tQ.put(items)
-        else:
+        try:
             [self.tQ.put(item) for item in items]
-			 
+        except:
+            self.tQ.put(items)
 
 def stringdecoder(function):
     """Wrapper for functions that return a dictionary. Converts the dictionary
@@ -157,6 +148,8 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.yMinus.clicked.connect(self.stepyMinus)
         self.xPlus.clicked.connect(self.stepxPlus)
         self.xMinus.clicked.connect(self.stepxMinus)
+        self.directCommand.returnPressed.connect(self.sendDirect)
+        self.sendDirectCommand.clicked.connect(self.sendDirect)
 
         # Scan timer initial value
         self.scanTimer = QtCore.QTimer(self)
@@ -173,6 +166,12 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
 
         # List of known CNC machines
         self._readMachineInfo()
+
+        # misc state variables
+        self._scanning = False
+
+    def sendDirect(self):
+        self.ser_info.enqueue(Command(self.directCommand.text(),response=True))
 
     def _add_serial_devices(self):
         ports = serial.tools.list_ports.comports()
@@ -266,16 +265,30 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         # Selection signal
         self.freeDrawView.scene.selectionChanged.connect(self.showWaypointInfo)
 
+    def _fmtWaypointList(self,idxs):
+        pass
+
     def showWaypointInfo(self):
-        if len(self.freeDrawView.scene.selectedItems()) == 1:
+        if len(self.freeDrawView.scene.selectedItems()):
             # find the index of the added item (inefficient)
-            selected, = self.freeDrawView.scene.selectedItems()
-            idx = (self.freeDrawView.waypointIndex(selected))
-            self.waypointLabel.setText("Waypoint {}".format(idx))
-            self._waypoint = selected
+            selecteds = self.freeDrawView.scene.selectedItems()
+            idxs = set(self.freeDrawView.waypointIndex(s)for s in selecteds)
+            min_idx = min(idxs)
+            max_idx = max(idxs)
+            if len(selecteds) == 1:
+                self.waypointLabel.setText("Waypoint {}".format(min_idx))
+                self._waypoint = selecteds[0]
+            else:
+                self.waypointLabel.setText("Waypoints {}-{}".format(min_idx,max_idx))
+
+            self.wpAction.setEnabled(True)
+            self.wpZ.setEnabled(True)
         else:
             self.waypointLabel.setText("Waypoint --")
             self._waypoint = None
+            self.wpAction.setCurrentIndex(0)
+            self.wpAction.setEnabled(False)
+            self.wpZ.setEnabled(False)
 
     def saveCustomFile(self):
         to_save = QtWidgets.QFileDialog.getSaveFileName(self,"Save Scan Path",
@@ -301,14 +314,12 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
             self.ser = dummySerial.Serial(self.serialPort.currentText(),
                     self.baudRateValue.value())
 
-        #self.ser_tee = SerialTeeThread(self,self.ser)
-        #self.ser_tee.updated.connect(self.commandLog.appendPlainText)
-
         self.ser_info = SerialInfoThread(self,self.ser,
                 self.instructions['info'])
 
         self.ser_info.updated.connect(self.moveMachineMarker)
-        self.ser_info.commandSent.connect(self.commandLog.appendPlainText)
+        self.ser_info.commandSent.connect(self.handleCommand)
+        self.ser_info.responseReceived.connect(self.commandLog.appendPlainText)
         self.ser_info.start()
 
         self.commandLog.appendPlainText(
@@ -319,10 +330,13 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         for button in self.cmdButtons:
              button.setEnabled(True)
 
+    def handleCommand(self,cmd):
+        if cmd.sequence is None:
+            # Don't do anything special for commands that aren't part of a sequence
+            self.commandLog.appendPlainText('--> {}'.format(cmd.text))
+            return
+        self.commandLog.appendPlainText('{:2d}> {}'.format(cmd.sequence,cmd.text))
 
-    def _close_enough(self, v1, v2, threshold=.25):
-        return abs(v1 - v2) < threshold
-		
     def moveMachineMarker(self,event):
         try:
             scale = self.machine['scale-factor']
@@ -334,18 +348,18 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.freeDrawView.moveMachineMarker(x,y)
         
     def stepxPlus(self):
-        self.ser_info.enqueue([self.scaled('relative','x')
-            .format(x=self.manualStepValue.value())])
+        self.ser_info.enqueue(Command(self.scaled('relative','x')
+            .format(x=self.manualStepValue.value()),instant=True))
 
     def stepxMinus(self):
-        self.ser_info.enqueue([self.scaled('relative','x')
-            .format(x=-self.manualStepValue.value())])
+        self.ser_info.enqueue(Command(self.scaled('relative','x')
+            .format(x=-self.manualStepValue.value()),instant=True))
     def stepyPlus(self):
-        self.ser_info.enqueue([self.scaled('relative','y')
-            .format(y=self.manualStepValue.value())])
+        self.ser_info.enqueue(Command(self.scaled('relative','y')
+            .format(y=self.manualStepValue.value()),instant=True))
     def stepyMinus(self):
-        self.ser_info.enqueue([self.scaled('relative','y')
-            .format(y=-self.manualStepValue.value())])
+        self.ser_info.enqueue(Command(self.scaled('relative','y')
+            .format(y=-self.manualStepValue.value()),instant=True))
 
 
     def _getTimeInfo(self,custom = False):
@@ -373,23 +387,26 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.freeDrawView.moveMachineMarker(0,0)
         
     def _startScanning(self,custom=False):
+        if self._scanning:
+            self.commandLog.appendPlainText("Already scanning.")
+            return
+        self._scanning = True
         time_info = self._getTimeInfo(custom=custom)
         self.commandLog.appendPlainText("Starting scan on {} {} interval."
                 .format(time_info["interval"],time_info["units"]))
         if custom:
             waypoints = self.freeDrawView.dumpWaypointsInfo()
-            move_commands = [self.scaled('absolute','xy').format(**p)
+            command_texts = [self.scaled('absolute','xy').format(**p)
                         for p in waypoints]
             commands = []
-            for command in move_commands:
-                commands.append(command)
-                #commands.append("G4 P0.1")
+            for i,text in enumerate(command_texts):
+                commands.append(Command(text,i))
 				
         else:
-            there = self.scaled('absolute','y').format(
-                    y=self.yLengthValue.value())
-            back = self.scaled('absolute','y').format(
-                    y=0)
+            there = Command(self.scaled('absolute','y').format(
+                    y=self.yLengthValue.value()),0)
+            back = Command(self.scaled('absolute','y').format(
+                    y=0),1)
             commands = [there,back]
         self.sendScanCommand(commands=commands)
         self.scanTimer.start(time_info["interval_s"]*1000)
@@ -402,15 +419,13 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
 
     def stopScanning(self):
         self.commandLog.appendPlainText("Stopping scan.")
+        self.ser_info.clear()
         self.scanTimer.stop()
-        #self.ser_tee.stop()
-        #self.ser_tee.quit()
+        self._scanning = False
 
     def emergencyStopScanning(self):
         self.stopScanning()
-        self.ser_tee.terminate()
-        time.sleep(0.1)
-        self.ser_tee.start([self.instructions['stop']])
+        self.ser_info.enqueue(Command(self.instructions['stop'],instant=True))
 
     def sendScanCommand(self,commands=None):
         if commands:

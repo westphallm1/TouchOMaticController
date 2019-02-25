@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>720</width>
-    <height>573</height>
+    <height>544</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -414,13 +414,6 @@
                  </item>
                 </layout>
                </item>
-               <item>
-                <widget class="QCheckBox" name="useArrows">
-                 <property name="text">
-                  <string>Enable Arrow Keys</string>
-                 </property>
-                </widget>
-               </item>
               </layout>
              </item>
             </layout>
@@ -664,7 +657,10 @@
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QComboBox" name="comboBox_2">
+             <widget class="QComboBox" name="wpAction">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="sizePolicy">
                <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -686,6 +682,20 @@
                 <string>Run Script</string>
                </property>
               </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>Z value:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QDoubleSpinBox" name="wpZ">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
              </widget>
             </item>
            </layout>
@@ -807,7 +817,7 @@
       </widget>
       <widget class="QWidget" name="eventTab">
        <attribute name="title">
-        <string>Event Log</string>
+        <string>Command Log</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
@@ -815,7 +825,7 @@
           <property name="title">
            <string>Command Log</string>
           </property>
-          <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <layout class="QVBoxLayout" name="verticalLayout_6">
            <item>
             <widget class="QPlainTextEdit" name="commandLog">
              <property name="enabled">
@@ -830,6 +840,26 @@
               <bool>true</bool>
              </property>
             </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_7">
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLineEdit" name="directCommand"/>
+             </item>
+             <item>
+              <widget class="QPushButton" name="sendDirectCommand">
+               <property name="text">
+                <string>Send</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>
