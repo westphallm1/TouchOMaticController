@@ -12,6 +12,7 @@ dimensions:
 scale-factor:
   x: 0.25
   y: -0.25
+  z: 0.25
 
 instructions:
   # connect to the machine
@@ -20,14 +21,14 @@ instructions:
   postfix: null
   # move to an absolute position
   absolute:
-    all: G90 X{x} Y{y} Z{z}
+    xyz: G90 X{x} Y{y} Z{z}
     xy: G90 X{x} Y{y}
     x: G90 X{x}
     y: G90 Y{y}
     z: G90 Z{z}
   # move relative to current position
   relative:
-    all: G91 X{x} Y{y} Z{z}
+    xyz: G91 X{x} Y{y} Z{z}
     x: G91 X{x}
     y: G91 Y{y}
     z: G91 Z{x}

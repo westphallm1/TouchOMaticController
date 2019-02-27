@@ -169,6 +169,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
 
         # misc state variables
         self._scanning = False
+        self._selected = []
 
     def sendDirect(self):
         self.ser_info.enqueue(Command(self.directCommand.text(),response=True))
@@ -264,6 +265,8 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.loadCustom.clicked.connect(self.loadCustomFile)
         # Selection signal
         self.freeDrawView.scene.selectionChanged.connect(self.showWaypointInfo)
+        # Z position / Velocity positons
+        self.zSlider.valueChanged.connect(self.changeZ)
 
     def _fmtWaypointList(self,idxs):
         pass
@@ -272,6 +275,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         if len(self.freeDrawView.scene.selectedItems()):
             # find the index of the added item (inefficient)
             selected = self.freeDrawView.scene.selectedItems()
+            self._selected = selected
             idxs = set(self.freeDrawView.waypointIndex(s)for s in selected)
             min_idx = min(idxs)
             max_idx = max(idxs)
@@ -282,12 +286,28 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 #self.wpAction.setText(info['action'])
                 self.wPos.setText('({x:d},{y:d},{z:d})'.format(x=int(info['x']),
                     y=int(info['y']),z=int(info['z'])))
+                self.zSlider.setValue(int(info['z']))
             else:
                 self.waypointLabel.setText("Waypoints {}-{}".format(min_idx,max_idx))
+                xs = [int(w.info['x']) for w in self._selected]
+                ys = [int(w.info['y']) for w in self._selected]
+                zs = [int(w.info['z']) for w in self._selected]
+                x = xs[0] if len(set(xs)) == 1 else '--'
+                y = ys[0] if len(set(ys)) == 1 else '--'
+                z = zs[0] if len(set(zs)) == 1 else '--'
+                self.wPos.setText('({},{},{})'.format(x,y,z))
 
         else:
             self.waypointLabel.setText("Waypoint --")
+            self.wPos.setText('(--,--,--)')
             self._waypoint = None
+
+
+    def changeZ(self,value):
+        for waypoint in self._selected:
+            waypoint.setZ(value)
+        self.showWaypointInfo()
+
 
     def saveCustomFile(self):
         to_save = QtWidgets.QFileDialog.getSaveFileName(self,"Save Scan Path",
@@ -395,7 +415,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 .format(time_info["interval"],time_info["units"]))
         if custom:
             waypoints = self.freeDrawView.dumpWaypointsInfo()
-            command_texts = [self.scaled('absolute','xy').format(**p)
+            command_texts = [self.scaled('absolute','xyz').format(**p)
                         for p in waypoints]
             commands = []
             for i,text in enumerate(command_texts):

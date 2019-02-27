@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>720</width>
-    <height>544</height>
+    <height>604</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -312,6 +312,22 @@
                    </property>
                   </widget>
                  </item>
+                 <item row="4" column="0">
+                  <spacer name="verticalSpacer_5">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Preferred</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>40</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
                 </layout>
                </item>
               </layout>
@@ -416,6 +432,22 @@
                </item>
               </layout>
              </item>
+             <item row="1" column="0">
+              <spacer name="verticalSpacer_3">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Preferred</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
             </layout>
            </widget>
           </item>
@@ -465,6 +497,22 @@
                </property>
               </widget>
              </item>
+             <item row="3" column="0">
+              <spacer name="verticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Preferred</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
             </layout>
            </widget>
           </item>
@@ -474,6 +522,9 @@
          <spacer name="verticalSpacer_2">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Expanding</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -492,6 +543,97 @@
        <layout class="QHBoxLayout" name="horizontalLayout_10">
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_11"/>
+        </item>
+        <item>
+         <widget class="QFrame" name="frame">
+          <property name="frameShape">
+           <enum>QFrame::StyledPanel</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_8">
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_7">
+             <item>
+              <widget class="QLabel" name="label_11">
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>z</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSlider" name="zSlider">
+               <property name="minimum">
+                <number>-50</number>
+               </property>
+               <property name="maximum">
+                <number>50</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="invertedAppearance">
+                <bool>false</bool>
+               </property>
+               <property name="tickPosition">
+                <enum>QSlider::TicksBelow</enum>
+               </property>
+               <property name="tickInterval">
+                <number>0</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="Line" name="line_4">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_13">
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <italic>true</italic>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>v</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSlider" name="vSlider">
+               <property name="maximum">
+                <number>100</number>
+               </property>
+               <property name="value">
+                <number>10</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="tickPosition">
+                <enum>QSlider::TicksBelow</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -540,13 +682,6 @@
                </widget>
               </item>
              </layout>
-            </item>
-            <item>
-             <widget class="Line" name="line_4">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-             </widget>
             </item>
             <item>
              <layout class="QGridLayout" name="gridLayout_10">
@@ -638,6 +773,13 @@
            </layout>
           </item>
           <item>
+           <widget class="Line" name="line">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QLabel" name="waypointLabel">
             <property name="text">
              <string>Waypoint --</string>
@@ -645,60 +787,47 @@
            </widget>
           </item>
           <item>
-           <layout class="QGridLayout" name="gridLayout_11">
+           <layout class="QHBoxLayout" name="horizontalLayout_14">
             <property name="bottomMargin">
              <number>0</number>
             </property>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_13">
-              <property name="text">
-               <string>Action:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QComboBox" name="wpAction">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
+            <item>
+             <widget class="QLabel" name="label_3">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+               <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
-              <item>
-               <property name="text">
-                <string>None</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>Take Picture</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>Run Script</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_3">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <italic>true</italic>
+                <bold>true</bold>
+               </font>
+              </property>
               <property name="text">
-               <string>Z value:</string>
+               <string>x =</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
-             <widget class="QDoubleSpinBox" name="wpZ">
-              <property name="enabled">
-               <bool>false</bool>
+            <item>
+             <widget class="QLabel" name="wPos">
+              <property name="text">
+               <string>(--,--,--)</string>
               </property>
              </widget>
             </item>
            </layout>
+          </item>
+          <item>
+           <widget class="QComboBox" name="actionBox">
+            <item>
+             <property name="text">
+              <string>No Action</string>
+             </property>
+            </item>
+           </widget>
           </item>
           <item>
            <widget class="Line" name="line_2">

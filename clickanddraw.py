@@ -55,6 +55,19 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         self.setRect(self._x-self.r/2,self._y-self.r/2,self.r,self.r)
         self._updatePens()
 
+    def setZ(self,z):
+        # + 50 = twice as large
+        # - 50 = half as large
+        dz = self.z - z
+        self.z = z
+        sf = 1.01**-dz
+        self.scaleSize(sf)
+        if self.traceline:
+            pen = self.traceline.pen()
+            new_width = pen.widthF()*sf
+            pen.setWidthF(new_width)
+            self.traceline.setPen(pen)
+
     @property
     def info(self):
         return {"x":self.x,"y":self.y,"z":self.z,"action":self.action}
