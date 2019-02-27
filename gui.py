@@ -271,24 +271,23 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
     def showWaypointInfo(self):
         if len(self.freeDrawView.scene.selectedItems()):
             # find the index of the added item (inefficient)
-            selecteds = self.freeDrawView.scene.selectedItems()
-            idxs = set(self.freeDrawView.waypointIndex(s)for s in selecteds)
+            selected = self.freeDrawView.scene.selectedItems()
+            idxs = set(self.freeDrawView.waypointIndex(s)for s in selected)
             min_idx = min(idxs)
             max_idx = max(idxs)
-            if len(selecteds) == 1:
+            if len(selected) == 1:
                 self.waypointLabel.setText("Waypoint {}".format(min_idx))
-                self._waypoint = selecteds[0]
+                self._waypoint, = selected
+                info = self._waypoint.info
+                #self.wpAction.setText(info['action'])
+                self.wPos.setText('({x:d},{y:d},{z:d})'.format(x=int(info['x']),
+                    y=int(info['y']),z=int(info['z'])))
             else:
                 self.waypointLabel.setText("Waypoints {}-{}".format(min_idx,max_idx))
 
-            self.wpAction.setEnabled(True)
-            self.wpZ.setEnabled(True)
         else:
             self.waypointLabel.setText("Waypoint --")
             self._waypoint = None
-            self.wpAction.setCurrentIndex(0)
-            self.wpAction.setEnabled(False)
-            self.wpZ.setEnabled(False)
 
     def saveCustomFile(self):
         to_save = QtWidgets.QFileDialog.getSaveFileName(self,"Save Scan Path",

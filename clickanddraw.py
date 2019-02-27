@@ -12,11 +12,14 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         self._y = y
         self.x = x
         self.y = y
+        self.z = 0
         self.r = r
         # Relations to other objects in scene
         self.traceline = traceline
         self.next = None 
         self.prev = None
+
+        self.action = "No Action"
 
         # Set flags
         self.setZValue(9999)
@@ -54,7 +57,7 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
 
     @property
     def info(self):
-        return {"x":self.x,"y":self.y,"action":None}
+        return {"x":self.x,"y":self.y,"z":self.z,"action":self.action}
 
 class QMachineIcon(QDragPoint):
     def __init__(self, *args,**kwargs):
@@ -127,6 +130,8 @@ class QCDScene(QtWidgets.QGraphicsScene):
             if not isinstance(self._mover,QDragPoint):
                 self._mover = None
                 self._moving = True
+                if len(self.selectedItems()) == 1:
+                    self.selectedItems()[0].setSelected(False)
             else:
                 # unselect all items besides the mover
                 for item in self.selectedItems():
@@ -188,6 +193,7 @@ class QCDScene(QtWidgets.QGraphicsScene):
     def _moveexisting(self,event):
         pos = event.scenePos()
         self._mover.setScenePos(pos.x(),pos.y())
+        self.selectionChanged.emit()
 
     def _movemultiple(self,event):
         pos = event.scenePos()
