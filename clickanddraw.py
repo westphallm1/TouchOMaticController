@@ -4,6 +4,63 @@ from collections import namedtuple
 
 Rect = namedtuple('Rect','x0 y0 xf yf')
 
+def scaleFactor(dz):
+    return 1.01**-dz
+
+class TraceLine(QtWidgets.QGraphicsItem):
+    def __init__(self, scene, x0, y0, xf, yf, pen):
+        self._scene = scene
+        mid_x, mid_y = self._midpoint(x0,y0,xf,yf)
+        self.line1 = QtWidgets.QGraphicsLineItem(x0,y0,mid_x,mid_y)
+        self.line2 = QtWidgets.QGraphicsLineItem(mid_x,mid_y,xf,yf)
+        self.line1.setPen(pen)
+        self.line2.setPen(pen)
+        self._scene.addItem(self.line1)
+        self._scene.addItem(self.line2)
+
+    def _midpoint(self,x0,y0,xf,yf):
+        return ((x0 + xf)/2., (y0 + yf)/2.)
+
+    def setLine(self,x0,y0,xf,yf):
+        mid_x, mid_y = self._midpoint(x0,y0,xf,yf)
+        self.line1.setLine(x0,y0,mid_x,mid_y)
+        self.line2.setLine(mid_x,mid_y,xf,yf)
+
+    def pen1(self):
+        return self.line1.pen()
+
+    def setPen1(self,pen):
+        self.line1.setPen(pen)
+
+    def pen2(self):
+        return self.line2.pen()
+
+    def setPen2(self,pen):
+        self.line2.setPen(pen)
+
+    def line(self):
+        return QtCore.QLineF(self.line1.line().x1(), self.line1.line().y1(),
+                             self.line2.line().x2(), self.line2.line().y2())
+    
+    def setScale1(self,dz):
+        sf = scaleFactor(-dz)
+        pen = self.pen1()
+        new_width = pen.widthF()*sf
+        pen.setWidthF(new_width)
+        self.setPen1(pen)
+
+    def setScale2(self,dz):
+        sf = scaleFactor(-dz)
+        pen = self.pen2()
+        new_width = pen.widthF()*sf
+        pen.setWidthF(new_width)
+        self.setPen2(pen)
+
+    def remove(self):
+        self._scene.removeItem(self.line1)
+        self._scene.removeItem(self.line2)
+        
+
 class QDragPoint(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, traceline = None, r = 8):
         super(QtWidgets.QGraphicsEllipseItem,self).__init__(x-r/2, y-r/2, r, r)
@@ -60,13 +117,18 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         # - 50 = half as large
         dz = self.z - z
         self.z = z
-        sf = 1.01**-dz
+        sf = scaleFactor(dz)
         self.scaleSize(sf)
         if self.traceline:
-            pen = self.traceline.pen()
+            pen = self.traceline.pen2()
             new_width = pen.widthF()*sf
             pen.setWidthF(new_width)
-            self.traceline.setPen(pen)
+            self.traceline.setPen2(pen)
+        if self.next and self.next.traceline:
+            pen = self.next.traceline.pen1()
+            new_width = pen.widthF()*sf
+            pen.setWidthF(new_width)
+            self.next.traceline.setPen1(pen)
 
     @property
     def info(self):
@@ -159,9 +221,11 @@ class QCDScene(QtWidgets.QGraphicsScene):
         if mover == self.head:
             return
         self.removeItem(mover)
-        self.removeItem(mover.traceline)
+        mover.traceline.remove()
+        #self.removeItem(mover.traceline)
         if mover.next and mover.next.traceline:
-            self.removeItem(mover.next.traceline)
+            #self.removeItem(mover.next.traceline)
+            mover.next.traceline.remove()
 
         if mover.prev and mover.next:
             mover.next.traceline = self.addLine(
@@ -184,7 +248,9 @@ class QCDScene(QtWidgets.QGraphicsScene):
             self._mover.setSelected(False)
             new_mover = QDragPoint(pos.x(),pos.y(), r = self.head.r)
             new_mover.traceline = self.addLine(self._mover.x,self._mover.y,
-                                               pos.x(),pos.y(),self._pen)
+                                               pos.x(),pos.y(),self._pen,False)
+            new_mover.setZ(self._mover.z)
+            new_mover.traceline.setScale1(self._mover.z)
             new_mover.next = self._mover.next
             self._mover.next = new_mover
             new_mover.prev = self._mover
@@ -198,7 +264,8 @@ class QCDScene(QtWidgets.QGraphicsScene):
         self._moved = True
         pos = event.scenePos()
         if self.traceline:
-            self.removeItem(self.traceline)
+            #self.removeItem(self.traceline)
+            self.traceline.remove()
             self.traceline = None
         start = self.tail
         self.traceline = self.addLine(start.x,start.y,pos.x(),pos.y(),self._pen)
@@ -221,16 +288,26 @@ class QCDScene(QtWidgets.QGraphicsScene):
         for mover in self.selectedItems():
             self._removeMover(mover)
 
-    def appendWaypoint(self,x=0,y=0,action=None):
+    def appendWaypoint(self,x=0,y=0,z=None,action=None):
         start = self.tail
         if not self.traceline:
             self.traceline = self.addLine(start.x,start.y, x, y, self._pen)
         new_tail = QDragPoint(x,y,self.traceline,r=self.head.r)
+        if z is None:
+            new_tail.setZ(self.tail.z)
+        else:
+            new_tail.setZ(z)
         self.tail.next = new_tail
         new_tail.prev = self.tail
         self.tail = new_tail
         self.traceline = None
         self.addItem(new_tail)
+
+    def addLine(self,x0,y0,xf,yf,pen,last=True):
+        line = TraceLine(self,x0,y0,xf,yf,pen)
+        if last:
+            line.setScale1(self.tail.z)
+        return line
 
     @onlywhendrawing
     def mouseMoveEvent(self, event):
@@ -278,10 +355,12 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
     def zoomIn(self):
         self.scale(1.25,1.25)
         [h.scaleSize(0.8) for h in self.waypoints]
+        self._scene.machine_icon.scaleSize(0.8)
 
     def zoomOut(self):
         self.scale(.8,.8)
         [h.scaleSize(1.25) for h in self.waypoints]
+        self._scene.machine_icon.scaleSize(1.25)
 
     def setRBSelect(self):
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
