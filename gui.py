@@ -17,12 +17,14 @@ serial_lock = QtCore.QMutex()
 
 class Command():
     """ Container object for commands sent over serial and their metadata """
-    def __init__(self,text, sequence=None, instant=False,pos=None,
+    def __init__(self,text, sequence=None, action=None,instant=False,pos=None,
             response=False):
         # text to send over serial
         self.text = text
         # position in sequence of commands
         self.sequence = sequence
+        # action to be called once the command completes
+        self.action = action
         # Can it be sent before the previous command completes?
         self.instant = instant
         # Where the machine is at when the command is sent
@@ -265,6 +267,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.loadCustom.clicked.connect(self.loadCustomFile)
         # Selection signal
         self.freeDrawView.scene.selectionChanged.connect(self.showWaypointInfo)
+        self.actionBox.currentTextChanged.connect(self.setAction)
         # Z position / Velocity positons
         self.zSlider.valueChanged.connect(self.changeZ)
 
@@ -287,20 +290,32 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 self.wPos.setText('({x:d},{y:d},{z:d})'.format(x=int(info['x']),
                     y=int(info['y']),z=int(info['z'])))
                 self.zSlider.setValue(int(info['z']))
+                self.actionBox.setCurrentIndex(
+                        self.actionBox.findText(info['action']))
             else:
                 self.waypointLabel.setText("Waypoints {}-{}".format(min_idx,max_idx))
                 xs = [int(w.info['x']) for w in self._selected]
                 ys = [int(w.info['y']) for w in self._selected]
                 zs = [int(w.info['z']) for w in self._selected]
+                actions = [w.info['action'] for w in self._selected]
+
                 x = xs[0] if len(set(xs)) == 1 else '--'
                 y = ys[0] if len(set(ys)) == 1 else '--'
                 z = zs[0] if len(set(zs)) == 1 else '--'
                 self.wPos.setText('({},{},{})'.format(x,y,z))
-
+                if len(set(actions)) == 1:
+                    self.actionBox.setCurrentIndex(
+                            self.actionBox.findText(actions[0]))
+                else:
+                    self.actionBox.setCurrentText("--")
         else:
             self.waypointLabel.setText("Waypoint --")
             self.wPos.setText('(--,--,--)')
             self._waypoint = None
+
+    def setAction(self,value):
+        for wp in self._selected:
+            wp.setAction(value)
 
 
     def changeZ(self,value):
@@ -354,7 +369,14 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
             # Don't do anything special for commands that aren't part of a sequence
             self.commandLog.appendPlainText('--> {}'.format(cmd.text))
             return
-        self.commandLog.appendPlainText('{:2d}> {}'.format(cmd.sequence,cmd.text))
+        
+        waypoints = self.freeDrawView.dumpWaypointsInfo()
+        if cmd.action:
+            self.commandLog.appendPlainText(
+                    ' && {}'.format(cmd.action))
+        else:
+            self.commandLog.appendPlainText(
+                    '{:2d}> {}'.format(cmd.sequence,cmd.text))
 
     def moveMachineMarker(self,event):
         try:
@@ -397,11 +419,11 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         }
 
     def moveToHome(self):
-        cmd = self.scaled('absolute','xy').format(x=0,y=0)
+        cmd = Command(self.scaled('absolute','xy').format(x=0,y=0))
         self.sendScanCommand(commands=[cmd])
         
     def setNewHome(self):
-        cmd = self.instructions['set-home']
+        cmd = Command(self.instructions['set-home'])
         self.sendScanCommand(commands=[cmd])
         self.freeDrawView.moveMachineMarker(0,0)
         
@@ -415,11 +437,13 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 .format(time_info["interval"],time_info["units"]))
         if custom:
             waypoints = self.freeDrawView.dumpWaypointsInfo()
-            command_texts = [self.scaled('absolute','xyz').format(**p)
-                        for p in waypoints]
             commands = []
-            for i,text in enumerate(command_texts):
+            for i,wp in enumerate(waypoints):
+                text = self.scaled('absolute','xyz').format(**wp)
                 commands.append(Command(text,i))
+                if wp['action'] != "No Action":
+                    commands.append(Command(self.instructions['wait'].format(t=5),i))
+                    commands[-1].action = wp['action']
 				
         else:
             there = Command(self.scaled('absolute','y').format(

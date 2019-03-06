@@ -41,3 +41,5 @@ instructions:
     order: xyz
   # stop in the middle of movement
   stop: "!~"
+  # don't move for t seconds
+  wait: G04 X{t}

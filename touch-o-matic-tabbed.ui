@@ -832,6 +832,21 @@
               <string>No Action</string>
              </property>
             </item>
+            <item>
+             <property name="text">
+              <string>Take Photo</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Start Recording</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Stop Recording</string>
+             </property>
+            </item>
            </widget>
           </item>
           <item>

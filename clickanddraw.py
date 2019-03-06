@@ -112,6 +112,17 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         self.setRect(self._x-self.r/2,self._y-self.r/2,self.r,self.r)
         self._updatePens()
 
+    def setAction(self,action):
+        self.action = action
+        colors={
+            "No Action":"white",
+            "Take Photo":"purple",
+            "Start Recording":"green",
+            "Stop Recording":"red"
+        }
+        color = colors[self.action]
+        self.setBrush(QtGui.QBrush(QtGui.QColor(color)))
+
     def setZ(self,z):
         # + 50 = twice as large
         # - 50 = half as large
