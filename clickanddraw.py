@@ -1,5 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from collections import namedtuple
+from commands import  Action
 
 
 Rect = namedtuple('Rect','x0 y0 xf yf')
@@ -76,7 +77,7 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         self.next = None 
         self.prev = None
 
-        self.action = "No Action"
+        self.action = Action.NO_ACTION
 
         # Set flags
         self.setZValue(9999)
@@ -115,10 +116,10 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
     def setAction(self,action):
         self.action = action
         colors={
-            "No Action":"white",
-            "Take Photo":"purple",
-            "Start Recording":"green",
-            "Stop Recording":"red"
+            Action.NO_ACTION:"white",
+            Action.TAKE_PHOTO:"purple",
+            Action.START_RECORDING:"green",
+            Action.STOP_RECORDING:"red"
         }
         color = colors[self.action]
         self.setBrush(QtGui.QBrush(QtGui.QColor(color)))
@@ -165,9 +166,11 @@ class QMachineIcon(QDragPoint):
 
 def onlywhendrawing(function):
     """Only call function if object's drawing property is true"""
-    def wrapper(self,*args,**kwargs):
+    def wrapper(self,event,*args,**kwargs):
         if self.drawing:
-            return function(self,*args,**kwargs)
+            return function(self,event,*args,**kwargs)
+        else:
+            event.ignore()
     return wrapper
 
 class QCDScene(QtWidgets.QGraphicsScene):
@@ -396,8 +399,10 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
     def rotateR(self):
         self.rotate(-30)
     
-    def moveMachineMarker(self,x,y):
+    def moveMachineMarker(self,x,y,z=None):
         self._scene.machine_icon._setScenePos(x,y)
+        if z is not None:
+            self._scene.machine_icon.setZ(z)
 
 
     def setMachine(self,machine):
@@ -419,3 +424,4 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
     def loadWaypointsInfo(self,info):
         for point in info[1:]:
             self._scene.appendWaypoint(**point)
+

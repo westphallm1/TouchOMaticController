@@ -13,24 +13,8 @@ import serial.tools.list_ports
 import dummySerial
 import touch_o_matic
 import clickanddraw
+from commands import Command, Action
 serial_lock = QtCore.QMutex()
-
-class Command():
-    """ Container object for commands sent over serial and their metadata """
-    def __init__(self,text, sequence=None, action=None,instant=False,pos=None,
-            response=False):
-        # text to send over serial
-        self.text = text
-        # position in sequence of commands
-        self.sequence = sequence
-        # action to be called once the command completes
-        self.action = action
-        # Can it be sent before the previous command completes?
-        self.instant = instant
-        # Where the machine is at when the command is sent
-        self.pos = None
-        # Do we care about the response from the command?
-        self.response = response
 
 class SerialInfoThread(QtCore.QThread):
     """ Poll the info command repeatedly, and emit its result as a signal """
@@ -267,7 +251,9 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.loadCustom.clicked.connect(self.loadCustomFile)
         # Selection signal
         self.freeDrawView.scene.selectionChanged.connect(self.showWaypointInfo)
-        self.actionBox.currentTextChanged.connect(self.setAction)
+        for action in Action:
+            self.actionBox.addItem(str(action),action)
+        self.actionBox.currentIndexChanged.connect(self.setAction)
         # Z position / Velocity positons
         self.zSlider.valueChanged.connect(self.changeZ)
 
@@ -291,7 +277,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                     y=int(info['y']),z=int(info['z'])))
                 self.zSlider.setValue(int(info['z']))
                 self.actionBox.setCurrentIndex(
-                        self.actionBox.findText(info['action']))
+                        self.actionBox.findData(info['action']))
             else:
                 self.waypointLabel.setText("Waypoints {}-{}".format(min_idx,max_idx))
                 xs = [int(w.info['x']) for w in self._selected]
@@ -305,7 +291,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 self.wPos.setText('({},{},{})'.format(x,y,z))
                 if len(set(actions)) == 1:
                     self.actionBox.setCurrentIndex(
-                            self.actionBox.findText(actions[0]))
+                            self.actionBox.findData(actions[0]))
                 else:
                     self.actionBox.setCurrentText("--")
         else:
@@ -313,7 +299,8 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
             self.wPos.setText('(--,--,--)')
             self._waypoint = None
 
-    def setAction(self,value):
+    def setAction(self,idx):
+        value = self.actionBox.currentData()
         for wp in self._selected:
             wp.setAction(value)
 
@@ -373,7 +360,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         waypoints = self.freeDrawView.dumpWaypointsInfo()
         if cmd.action:
             self.commandLog.appendPlainText(
-                    ' && {}'.format(cmd.action))
+                    '   && {}'.format(cmd.action))
         else:
             self.commandLog.appendPlainText(
                     '{:2d}> {}'.format(cmd.sequence,cmd.text))
@@ -385,8 +372,8 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
             scale = dict(x=1,y=1,z=1)
         x = event['x']/scale['x']
         y = event['y']/scale['y']
-        waypoints = self.freeDrawView.dumpWaypointsInfo()
-        self.freeDrawView.moveMachineMarker(x,y)
+        z = event['z']/scale['z']
+        self.freeDrawView.moveMachineMarker(x,y,z)
         
     def stepxPlus(self):
         self.ser_info.enqueue(Command(self.scaled('relative','x')
