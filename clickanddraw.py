@@ -63,6 +63,7 @@ class TraceLine(QtWidgets.QGraphicsItem):
         
 
 class QDragPoint(QtWidgets.QGraphicsEllipseItem):
+    v = 0
     def __init__(self, x, y, traceline = None, r = 8):
         super(QtWidgets.QGraphicsEllipseItem,self).__init__(x-r/2, y-r/2, r, r)
         # Position variables
@@ -144,7 +145,7 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
 
     @property
     def info(self):
-        return {"x":self.x,"y":self.y,"z":self.z,"action":self.action}
+        return {"x":self.x,"y":self.y,"z":self.z,"v":self.v,"action":self.action}
 
 class QMachineIcon(QDragPoint):
     def __init__(self, *args,**kwargs):
@@ -409,7 +410,10 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
         x_bound = machine['dimensions']['x-axis']
         y_bound = machine['dimensions']['y-axis']
         grid_size = machine['dimensions']['grid-size']
+        speed = machine['default-speed']
         self._scene.setGrid(x_bound,y_bound,grid_size)
+        self._scene.head.v = speed
+        QDragPoint.v = speed
 
     def waypointIndex(self,waypoint):
         # Todo: more efficient

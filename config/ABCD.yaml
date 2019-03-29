@@ -13,7 +13,7 @@ scale-factor:
   x: 0.25
   y: -0.25
   z: 0.25
-
+default-speed: 600 #mm/minute
 instructions:
   # connect to the machine
   connect: \r\n\r\nG21 G17 G01\r\n
@@ -43,3 +43,5 @@ instructions:
   stop: "!~"
   # don't move for t seconds
   wait: G04 X{t}
+  # set velocity in all 3 axes to s
+  set-speed: "$110 = {v}\r\n$111 = {v}\r\n$112 = {v}\r\n"

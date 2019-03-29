@@ -256,6 +256,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         self.actionBox.currentIndexChanged.connect(self.setAction)
         # Z position / Velocity positons
         self.zSlider.valueChanged.connect(self.changeZ)
+        self.vSlider.valueChanged.connect(self.changeV)
 
     def _fmtWaypointList(self,idxs):
         pass
@@ -275,7 +276,9 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 #self.wpAction.setText(info['action'])
                 self.wPos.setText('({x:d},{y:d},{z:d})'.format(x=int(info['x']),
                     y=int(info['y']),z=int(info['z'])))
+                self.vVal.setText('{}'.format(int(info['v'])))
                 self.zSlider.setValue(int(info['z']))
+                self.vSlider.setValue(int(info['v']))
                 self.actionBox.setCurrentIndex(
                         self.actionBox.findData(info['action']))
             else:
@@ -283,12 +286,15 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 xs = [int(w.info['x']) for w in self._selected]
                 ys = [int(w.info['y']) for w in self._selected]
                 zs = [int(w.info['z']) for w in self._selected]
+                vs = [int(w.info['v']) for w in self._selected]
                 actions = [w.info['action'] for w in self._selected]
 
                 x = xs[0] if len(set(xs)) == 1 else '--'
                 y = ys[0] if len(set(ys)) == 1 else '--'
                 z = zs[0] if len(set(zs)) == 1 else '--'
+                v = vs[0] if len(set(zs)) == 1 else '--'
                 self.wPos.setText('({},{},{})'.format(x,y,z))
+                self.vVal.setText('{}'.format(v))
                 if len(set(actions)) == 1:
                     self.actionBox.setCurrentIndex(
                             self.actionBox.findData(actions[0]))
@@ -308,6 +314,11 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
     def changeZ(self,value):
         for waypoint in self._selected:
             waypoint.setZ(value)
+        self.showWaypointInfo()
+
+    def changeV(self,value):
+        for waypoint in self._selected:
+            waypoint.v = value
         self.showWaypointInfo()
 
 
@@ -358,7 +369,7 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
             return
         
         waypoints = self.freeDrawView.dumpWaypointsInfo()
-        if cmd.action:
+        if cmd.action and cmd.action != Action.NO_ACTION:
             self.commandLog.appendPlainText(
                     '   && {}'.format(cmd.action))
         else:
@@ -425,12 +436,18 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         if custom:
             waypoints = self.freeDrawView.dumpWaypointsInfo()
             commands = []
+            v = None
             for i,wp in enumerate(waypoints):
                 text = self.scaled('absolute','xyz').format(**wp)
                 commands.append(Command(text,i))
                 if wp['action'] != "No Action":
                     commands.append(Command(self.instructions['wait'].format(t=5),i))
                     commands[-1].action = wp['action']
+                if wp['v'] != v:
+                    v = wp['v']
+                    cmd = Command(self.instructions['set-speed'].format(v=v),i)
+                    cmd.action = "Set Speed {}".format(v)
+                    commands.append(cmd)
 				
         else:
             there = Command(self.scaled('absolute','y').format(
