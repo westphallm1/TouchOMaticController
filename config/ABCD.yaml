@@ -3,16 +3,20 @@ units: mm
 default: true
 primary-axis: y
 dimensions:
-  x-axis: 200
-  y-axis: 800 
+  x-axis: 720
+  y-axis: 1640
   z-axis: null
-  grid-size: 50
+  grid-size: 100
 
-# if the machine isn't callibrated to proper gcode units
-scale-factor:
-  x: 0.25
-  y: -0.25
-  z: 0.25
+# set the correct machine scale
+scale:
+  x: "$100 = 39.56"
+  y: "$101 = 39.36"
+  z: "$102 = 39.36"
+# invert axes
+invert:
+  x: "$3 = 3"
+  y: "$3 = 3"
 default-speed: 600 #mm/minute
 instructions:
   # connect to the machine
@@ -44,4 +48,4 @@ instructions:
   # don't move for t seconds
   wait: G04 X{t}
   # set velocity in all 3 axes to s
-  set-speed: "$110 = {v}\r\n$111 = {v}\r\n$112 = {v}\r\n"
+  set-speed: "$110 = {v}\r\n$111 = {v}\r\n$112 = {v}"
