@@ -1,5 +1,6 @@
 name: ABCD
 units: mm
+units-scale: 10 #convert to cm
 default: true
 primary-axis: y
 dimensions:
@@ -17,7 +18,10 @@ scale:
 invert:
   x: "$3 = 3"
   y: "$3 = 3"
-default-speed: 600 #mm/minute
+
+default-speed: 6000 #mm/minute
+speed-scale: 600 # convert to cm/s
+
 instructions:
   # connect to the machine
   connect: \r\n\r\nG21 G17 G01\r\n

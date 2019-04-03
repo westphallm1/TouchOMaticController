@@ -8,6 +8,10 @@ Rect = namedtuple('Rect','x0 y0 xf yf')
 def scaleFactor(dz):
     return 1.01**-dz
 
+def snap(x,y):
+    mod = QClickAndDraw._scale
+    return (x - x%mod, y - y%mod)
+
 class TraceLine(QtWidgets.QGraphicsItem):
     def __init__(self, scene, x0, y0, xf, yf, pen):
         self._scene = scene
@@ -67,10 +71,9 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, traceline = None, r = 8):
         super(QtWidgets.QGraphicsEllipseItem,self).__init__(x-r/2, y-r/2, r, r)
         # Position variables
-        self._x = x
-        self._y = y
-        self.x = x
-        self.y = y
+        self._x, self._y = snap(x,y)
+        self.x = self._x
+        self.y = self._y
         self.z = 0
         self.r = r
         # Relations to other objects in scene
@@ -87,6 +90,8 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         # Set artists
         self._updatePens()
         self.setBrush(QtGui.QBrush(QtGui.QColor("white")))
+        self._dx = 0
+        self._dy = 0
 
     def _updatePens(self):
         self._normalPen = QtGui.QPen(QtGui.QColor("black"))
@@ -107,7 +112,12 @@ class QDragPoint(QtWidgets.QGraphicsEllipseItem):
         self.y = y
 
     def moveScenePos(self, dx, dy):
-        self.setScenePos(self.x + dx, self.y + dy)
+        self._dx += dx
+        self._dy += dy
+        if snap(self._dx,self._dy) != (0, 0):
+            self.setScenePos(self.x + self._dx, self.y + self._dy)
+            self._dx = 0
+            self._dy = 0
 
     def scaleSize(self,factor):
         self.r *= factor
@@ -175,6 +185,7 @@ def onlywhendrawing(function):
     return wrapper
 
 class QCDScene(QtWidgets.QGraphicsScene):
+    mousedrag = QtCore.pyqtSignal(tuple)
     def __init__(self,parent):
         super(QtWidgets.QGraphicsScene,self).__init__(parent)
         self.parent = parent
@@ -184,31 +195,42 @@ class QCDScene(QtWidgets.QGraphicsScene):
         self._pen = QtGui.QPen(QtGui.QColor("red"))
         self._pen.setWidth(4)
         self._pen.setCosmetic(True)
-        self.head = None
         self.tail = None
+        self.head = None
+        self.drawing = True
+
+    def _addhead(self):
         self.head = QDragPoint(0,0)
         self.tail = self.head
         self.addItem(self.head)
         self.machine_icon = QMachineIcon(0,0)
         self.addItem(self.machine_icon)
-        self.drawing = True
 
     def setGrid(self, xf, yf,GRID_STEP = 50):
         self.rect = Rect(0, 0, xf, yf)
         self._drawGrid(GRID_STEP)
 
     def _drawGrid(self, GRID_STEP = 50):
+        borderpen = QtGui.QPen(QtGui.QColor(0,0,0,150))
         gridpen = QtGui.QPen(QtGui.QColor(0,0,0,100))
+        borderpen.setCosmetic(True)
+        borderpen.setWidth(3)
         gridpen.setCosmetic(True)
         gridpen.setDashPattern([4,5])
         gridpen.setWidth(2)
         x0, xf = sorted((self.rect.x0, self.rect.xf))
         y0, yf = sorted((self.rect.y0, self.rect.yf))
-        for i in range(x0, xf+GRID_STEP,GRID_STEP):
-            self.addLine(i,self.rect.y0,i,self.rect.yf,gridpen)
+        print(x0,xf,y0,yf)
+        for i in range(x0+GRID_STEP, xf,GRID_STEP):
+            super().addLine(i,y0,i,yf,gridpen)
 
-        for i in range(y0, yf+GRID_STEP,GRID_STEP):
-            self.addLine(self.rect.x0,i,self.rect.xf,i,gridpen)
+        for i in range(y0+GRID_STEP, yf,GRID_STEP):
+            super().addLine(x0,i,xf,i,gridpen)
+        
+        super().addLine(x0,y0,x0,yf,borderpen)
+        super().addLine(x0,y0,xf,y0,borderpen)
+        super().addLine(xf,y0,xf,yf,borderpen)
+        super().addLine(x0,yf,xf,yf,borderpen)
     
     @onlywhendrawing
     def mousePressEvent(self, event):
@@ -284,6 +306,7 @@ class QCDScene(QtWidgets.QGraphicsScene):
             self.traceline = None
         start = self.tail
         self.traceline = self.addLine(start.x,start.y,pos.x(),pos.y(),self._pen)
+        self.mousedrag.emit(snap(pos.x(),pos.y()))
 
     def _moveexisting(self,event):
         pos = event.scenePos()
@@ -319,6 +342,8 @@ class QCDScene(QtWidgets.QGraphicsScene):
         self.addItem(new_tail)
 
     def addLine(self,x0,y0,xf,yf,pen,last=True):
+        x0, y0 = snap(x0,y0)
+        xf, yf = snap(xf,yf)
         line = TraceLine(self,x0,y0,xf,yf,pen)
         if last:
             line.setScale1(self.tail.z)
@@ -347,8 +372,10 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
     def __init__(self, parent):
         super(QtWidgets.QGraphicsView,self).__init__(parent)
         self._scene = QCDScene(self)
+        self.mousedrag = self._scene.mousedrag
         self.setScene(self._scene)
         self.rotation = 0
+        self.scale(1,-1)
 
     @property
     def waypoints(self):
@@ -411,6 +438,9 @@ class QClickAndDraw(QtWidgets.QGraphicsView):
         y_bound = machine['dimensions']['y-axis']
         grid_size = machine['dimensions']['grid-size']
         speed = machine['default-speed']
+        QClickAndDraw._scale = machine['units-scale']
+
+        self._scene._addhead()
         self._scene.setGrid(x_bound,y_bound,grid_size)
         self._scene.head.v = speed
         QDragPoint.v = speed

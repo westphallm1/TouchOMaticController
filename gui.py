@@ -257,9 +257,17 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
         # Z position / Velocity positons
         self.zSlider.valueChanged.connect(self.changeZ)
         self.vSlider.valueChanged.connect(self.changeV)
+        # Mouse drag
+        self.freeDrawView.mousedrag.connect(self._update_wpos)
 
     def _fmtWaypointList(self,idxs):
         pass
+
+    def _update_wpos(self,pos):
+        pos_strs = ['--','--','--']
+        for i,p in enumerate(pos):
+            pos_strs[i] = '{:d}'.format(int(pos[i]/self.machine['units-scale']))
+        self.wPos.setText('({})'.format(','.join(pos_strs)))
 
     def showWaypointInfo(self):
         if len(self.freeDrawView.scene.selectedItems()):
@@ -274,9 +282,11 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 self._waypoint, = selected
                 info = self._waypoint.info
                 #self.wpAction.setText(info['action'])
-                self.wPos.setText('({x:d},{y:d},{z:d})'.format(x=int(info['x']),
-                    y=int(info['y']),z=int(info['z'])))
-                self.vVal.setText('{}'.format(int(info['v'])))
+                self.wPos.setText('({x:d},{y:d},{z:d})'.format(x=int(info['x']/self.machine['units-scale']),
+                    y=int(info['y']/self.machine['units-scale']),z=int(info['z']/self.machine['units-scale'])))
+                # transform to cm/s since mm/min is hard to understand
+                self.vVal.setText('{:.1f}'.format(info['v']/
+                    self.machine['speed-scale']))
                 self.zSlider.setValue(int(info['z']))
                 self.vSlider.setValue(int(info['v']))
                 self.actionBox.setCurrentIndex(
@@ -289,10 +299,10 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 vs = [int(w.info['v']) for w in self._selected]
                 actions = [w.info['action'] for w in self._selected]
 
-                x = xs[0] if len(set(xs)) == 1 else '--'
-                y = ys[0] if len(set(ys)) == 1 else '--'
-                z = zs[0] if len(set(zs)) == 1 else '--'
-                v = vs[0] if len(set(zs)) == 1 else '--'
+                x = int(xs[0]/self.machine['units-scale']) if len(set(xs)) == 1 else '--'
+                y = int(ys[0]/self.machine['units-scale']) if len(set(ys)) == 1 else '--'
+                z = int(zs[0]/self.machine['units-scale']) if len(set(zs)) == 1 else '--'
+                v = '{:.1f}'.format(vs[0]/self.machine['speed-scale']) if len(set(zs)) == 1 else '--'
                 self.wPos.setText('({},{},{})'.format(x,y,z))
                 self.vVal.setText('{}'.format(v))
                 if len(set(actions)) == 1:
