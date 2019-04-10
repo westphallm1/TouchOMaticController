@@ -4,15 +4,15 @@ units-scale: 10 #convert to cm
 default: true
 primary-axis: y
 dimensions:
-  x-axis: 720
-  y-axis: 1640
+  x-axis: 675
+  y-axis: 1565
   z-axis: null
   grid-size: 100
 
 # set the correct machine scale
 scale:
   x: "$100 = 39.56"
-  y: "$101 = 39.36"
+  y: "$101 = 38.75"
   z: "$102 = 39.36"
 # invert axes
 invert:
