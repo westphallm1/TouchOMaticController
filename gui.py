@@ -368,9 +368,20 @@ class TouchOMaticApp(QtWidgets.QMainWindow, touch_o_matic.Ui_MainWindow):
                 "Connected to {} at baudrate {}"
                 .format(self.serialPort.currentText(), self.baudRateValue.value()))
 
-        self.ser.write(bytes(self.instructions['connect'],'ascii'))
+        self.configure()
         for button in self.cmdButtons:
              button.setEnabled(True)
+
+    def configure(self):
+        """Set initial machine variables that won't need to be modified during
+        runtime"""
+        connect_command = Command(self.instructions['connect'])
+        scale_commands = [Command(c) for c in self.machine['scale'].values()]
+        invert_commands = [Command(c) for c in self.machine['invert'].values()]
+        self.ser_info.enqueue(connect_command)
+        self.ser_info.enqueue(scale_commands)
+        self.ser_info.enqueue(invert_commands)
+
 
     def handleCommand(self,cmd):
         if cmd.sequence is None:
